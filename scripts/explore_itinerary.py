@@ -7,7 +7,7 @@ def main():
     caps = {
         "platformName": "Android",
         "appium:automationName": "UiAutomator2",
-        "appium:udid": "192.168.1.62:42733",
+        "appium:udid": "192.168.1.62:39845",
         "appium:appPackage": "com.mepo",
         "appium:appActivity": "com.mepo.MainActivity",
         "appium:noReset": True

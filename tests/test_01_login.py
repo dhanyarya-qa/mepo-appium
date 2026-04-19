@@ -71,56 +71,133 @@ def _navigate_to_login_screen(driver):
     
     if state == "home":
         logger.info("  🏠 On home screen — need to logout first")
-        # Navigate: Home → Profile icon → Settings → Logout
+        if _perform_logout(driver):
+            return True
+        
+        # Fallback: force restart with app data clear via terminate + activate
+        logger.info("  🔄 Logout UI failed — trying app restart fallback...")
         try:
-            # Scroll to top first
-            s = driver.get_window_size()
-            for _ in range(3):
-                driver.swipe(s['width']//2, int(s['height']*0.25),
-                           s['width']//2, int(s['height']*0.75), 800)
-                time.sleep(0.5)
-            
-            # Tap profile icon (top-right)
-            driver.tap([(978, 245)], 500)
+            driver.terminate_app("com.mepo")
             time.sleep(3)
-            
-            # Tap settings button (gear, last button in header)
+            driver.activate_app("com.mepo")
+            time.sleep(10)
+            state = _wait_for_app_ready(driver, timeout=15)
+            if state == "login":
+                logger.info("  ✅ App restart brought us to login screen")
+                return True
+        except Exception as e:
+            logger.warning(f"  ⚠ App restart fallback failed: {e}")
+    
+    return False
+
+
+def _perform_logout(driver):
+    """Navigate Home → Profile → Settings → Logout. Returns True if reached login screen."""
+    try:
+        s = driver.get_window_size()
+        
+        # Scroll to top first
+        for _ in range(3):
+            driver.swipe(s['width']//2, int(s['height']*0.25),
+                       s['width']//2, int(s['height']*0.75), 800)
+            time.sleep(0.5)
+        
+        # --- Try to tap profile icon via content-desc locators first ---
+        profile_opened = False
+        profile_locators = [
+            "//*[contains(@content-desc, 'Profile') and @clickable='true']",
+            "//*[contains(@content-desc, 'profile') and @clickable='true']",
+            "//*[contains(@content-desc, 'Profil') and @clickable='true']",
+            "//android.view.View[contains(@content-desc, 'danip')]",
+        ]
+        for loc in profile_locators:
+            els = driver.find_elements(AppiumBy.XPATH, loc)
+            if els:
+                els[0].click()
+                time.sleep(3)
+                # Verify we reached profile
+                title = driver.find_elements(AppiumBy.XPATH, "//*[@content-desc='My Profile']")
+                if title:
+                    profile_opened = True
+                    break
+        
+        # Fallback: tap top-right area (profile icon) using relative coordinates
+        if not profile_opened:
+            logger.info("  📍 Using coordinate-based profile tap fallback...")
+            x_right = int(s['width'] * 0.9)
+            y_top = int(s['height'] * 0.1)
+            driver.tap([(x_right, y_top)], 500)
+            time.sleep(3)
+            title = driver.find_elements(AppiumBy.XPATH, "//*[@content-desc='My Profile']")
+            profile_opened = len(title) > 0
+        
+        if not profile_opened:
+            logger.warning("  ⚠ Could not open Profile page")
+            return False
+        
+        logger.info("  📋 Profile opened — looking for Settings...")
+        
+        # Tap settings button (gear icon) — try content-desc first, then last button
+        settings_opened = False
+        settings_locators = [
+            "//*[contains(@content-desc, 'Settings') or contains(@content-desc, 'Pengaturan')]",
+            "//*[contains(@content-desc, 'setting')]",
+        ]
+        for loc in settings_locators:
+            els = driver.find_elements(AppiumBy.XPATH, loc)
+            if els:
+                els[0].click()
+                time.sleep(3)
+                settings_opened = True
+                break
+        
+        if not settings_opened:
+            # Fallback: tap last clickable button in header area
             buttons = driver.find_elements(AppiumBy.XPATH,
                 "//android.widget.Button[@clickable='true']")
             if len(buttons) >= 2:
                 buttons[-1].click()
                 time.sleep(3)
-            
-            # Find and click logout
-            for _ in range(5):
-                logout = driver.find_elements(AppiumBy.XPATH,
-                    "//*[contains(@content-desc, 'Logout') "
-                    "or contains(@content-desc, 'Log out') "
-                    "or contains(@content-desc, 'Sign out')]")
-                if logout:
-                    logout[0].click()
-                    time.sleep(2)
-                    # Confirm if dialog appears
-                    confirm = driver.find_elements(AppiumBy.XPATH,
-                        "//*[contains(@content-desc, 'Yes') "
-                        "or contains(@content-desc, 'OK') "
-                        "or contains(@content-desc, 'Logout')]")
-                    if confirm:
-                        confirm[0].click()
+                settings_opened = True
+        
+        # Find and click logout
+        for _ in range(5):
+            logout = driver.find_elements(AppiumBy.XPATH,
+                "//*[contains(@content-desc, 'Logout') "
+                "or contains(@content-desc, 'Log out') "
+                "or contains(@content-desc, 'Sign out')]")
+            if logout:
+                logout[0].click()
+                time.sleep(2)
+                # Confirm if dialog appears
+                confirm = driver.find_elements(AppiumBy.XPATH,
+                    "//*[contains(@content-desc, 'Yes') "
+                    "or contains(@content-desc, 'OK') "
+                    "or contains(@content-desc, 'Confirm')]")
+                if confirm:
+                    confirm[0].click()
+                    time.sleep(5)
+                else:
+                    # Try tapping the Logout button itself if it acts as confirm
+                    logout2 = driver.find_elements(AppiumBy.XPATH,
+                        "//*[contains(@content-desc, 'Logout')]")
+                    if logout2:
+                        logout2[0].click()
                         time.sleep(5)
-                    break
-                driver.swipe(s['width']//2, int(s['height']*0.75),
-                           s['width']//2, int(s['height']*0.25), 800)
-                time.sleep(1)
+                break
+            driver.swipe(s['width']//2, int(s['height']*0.75),
+                       s['width']//2, int(s['height']*0.25), 800)
+            time.sleep(1)
+        
+        # Wait for login screen
+        time.sleep(5)
+        state = _wait_for_app_ready(driver, timeout=20)
+        if state == "login":
+            logger.info("  ✅ Logged out → login screen ready")
+            return True
             
-            # Wait for login screen
-            time.sleep(5)
-            state = _wait_for_app_ready(driver, timeout=20)
-            if state == "login":
-                logger.info("  ✅ Logged out → login screen ready")
-                return True
-        except Exception as e:
-            logger.warning(f"  ⚠ Logout attempt failed: {e}")
+    except Exception as e:
+        logger.warning(f"  ⚠ Logout attempt failed: {e}")
     
     return False
 
@@ -129,8 +206,16 @@ def _clear_and_type(element, text):
     """Safely click a field and type text."""
     element.click()
     time.sleep(0.5)
-    if text:
+    try:
+        element.clear()
+    except Exception:
+        pass  # some frameworks don't play well with clear(), fallback to just send_keys
+    time.sleep(0.5)
+    if text != "":
         element.send_keys(text)
+    else:
+        # If text is empty, send empty string to force trigger change event
+        element.send_keys("")
     time.sleep(0.5)
 
 

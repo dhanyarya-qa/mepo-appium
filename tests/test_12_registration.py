@@ -5,6 +5,7 @@ Verifies the registration screen accessibility and form validation.
 """
 
 import pytest
+import time
 import logging
 from appium.webdriver.common.appiumby import AppiumBy
 
@@ -119,8 +120,15 @@ class TestRegistration:
             # ----------------------------------------------------
             # OTP EXTRACTION VIA YOPMAIL
             # ----------------------------------------------------
-            logger.info("⏳ Waiting for OTP to arrive in Yopmail...")
-            time.sleep(15) # Give the backend time to send the email
+            logger.info("⏳ Waiting for OTP to arrive in Yopmail... (Active Polling to keep driver awake)")
+            
+            # Active wait to prevent Xiaomi UIAutomator idle drops
+            for _ in range(5):
+                try:
+                    driver.find_elements(AppiumBy.XPATH, "//android.widget.EditText")
+                except:
+                    pass
+                time.sleep(3)
             
             try:
                 from yopmail import Yopmail

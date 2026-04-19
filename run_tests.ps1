@@ -58,7 +58,7 @@ try {
 } catch {
     Write-Host "[WARN] Appium server not found on :4723. Auto-starting Appium..." -ForegroundColor Yellow
     # Start Appium detached 
-    Start-Process -FilePath "cmd.exe" -ArgumentList "/c appium --relaxed-security" -WindowStyle Minimized
+    Start-Process -FilePath "cmd.exe" -ArgumentList "/c appium" -WindowStyle Minimized
     Write-Host "[...] Waiting 5 seconds for Appium to boot..." -ForegroundColor Yellow
     Start-Sleep -Seconds 5
     try {

@@ -12,7 +12,7 @@ caps = {
     "appium:automationName": "UiAutomator2",
     "appium:deviceName": "23124RA7EO",
     "appium:platformVersion": "15",
-    "appium:udid": "192.168.1.62:41821",
+    "appium:udid": "192.168.1.62:39845",
     "appium:appPackage": "com.mepo",
     "appium:appActivity": "com.mepo.MainActivity",
     "appium:noReset": True,
