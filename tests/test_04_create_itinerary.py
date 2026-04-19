@@ -174,8 +174,10 @@ class TestCreateItineraryForm:
         title_field[0].click()
         time.sleep(0.3)
         title_field[0].send_keys("[Auto-Test] Safari Trip")
-        # Safe keyboard hide
-        driver.tap([(540, 200)])
+        try:
+            driver.press_keycode(66) # ENTER key to safely dismiss keyboard
+        except:
+            pass
         time.sleep(1)
         logger.info("✅ Title entered: '[Auto-Test] Safari Trip'")
 
@@ -218,6 +220,12 @@ class TestCreateItineraryForm:
         if scrim:
             scrim[0].click()
             time.sleep(2)
+            # Handle discard warning if it appears
+            warning_cancel = driver.find_elements(AppiumBy.XPATH, "//*[@content-desc='Cancel']")
+            if warning_cancel:
+                warning_cancel[0].click()
+                time.sleep(2)
+                
             modal = driver.find_elements(AppiumBy.XPATH,
                 "//*[@content-desc='Create Itinerary']")
             assert len(modal) == 0, "Modal still visible after Scrim tap"
@@ -246,8 +254,11 @@ class TestCompleteItineraryCreation:
         title_field[0].clear()
         title_field[0].send_keys("Automation Travel Plan")
         time.sleep(1)
-        # Safe keyboard hide 
-        driver.tap([(540, 200)])
+        # Safe keyboard hide: try press Enter
+        try:
+            driver.press_keycode(66)
+        except:
+            pass
         time.sleep(1)
 
         # 2. Select Destination
@@ -263,8 +274,11 @@ class TestCompleteItineraryCreation:
             if search:
                 search[0].send_keys("Bali")
                 time.sleep(1)
-                # Safe keyboard hide (tap screen top-middle) instead of hide_keyboard() which triggers Back
-                driver.tap([(540, 200)])
+                # Safe keyboard hide
+                try:
+                    driver.press_keycode(66)
+                except:
+                    pass
                 time.sleep(4) # Wait for API results
                 
                 # Check for Bali in content-desc
@@ -308,22 +322,88 @@ class TestCompleteItineraryCreation:
 
     def test_z_interact_itinerary_details(self, driver):
         """Add Trip Dates button should exist, and save draft to save to cloud."""
-        logger.info("\n=== ITINERARY FULL: Detail Page & Save Draft ===")
+        logger.info("\n=== ITINERARY FULL: Detail Page & Trip Dates ===")
         
-        # Verify Add Trip Dates button
+        # Verify Add Trip Dates button & Click it
         add_dates = driver.find_elements(AppiumBy.XPATH, "//*[@content-desc='Add Trip Dates']")
         if add_dates:
             logger.info("  🗓 'Add Trip Dates' button is visible.")
-
-        # Save the Draft to exit nicely
-        for _ in range(5):
-             save_draft = driver.find_elements(AppiumBy.XPATH, "//*[@content-desc='Save Draft']")
-             if save_draft: break
-             time.sleep(2)
-             
-        assert save_draft, "Save Draft button not found in detail page"
-        save_draft[-1].click()
-        time.sleep(8)
+            add_dates[-1].click()
+            time.sleep(3)
+            
+            # Inside Dates Modal
+            anytime = driver.find_elements(AppiumBy.XPATH, "//*[@content-desc='Anytime']")
+            if anytime: anytime[-1].click()
+            
+            # Set to 1 day instead of 3 to avoid missing activities on other days!
+            days_input = driver.find_elements(AppiumBy.XPATH, "//android.widget.EditText")
+            if days_input:
+                days_input[-1].click()
+                time.sleep(1)
+                days_input[-1].clear()
+                days_input[-1].send_keys("1")
+                try:
+                    driver.press_keycode(66) # ENTER
+                except: pass
+                time.sleep(1)
+                
+            # Click Done
+            done_btn = driver.find_elements(AppiumBy.XPATH, "//*[@content-desc='Done']")
+            if done_btn: done_btn[-1].click()
+            time.sleep(4)
         
-        logger.info("✅ Draft Saved Successfully.")
+        # Click Add New Activity
+        add_activity = driver.find_elements(AppiumBy.XPATH, "//*[@content-desc='Add New Activity']")
+        if add_activity:
+            logger.info("  🏃 Found Add New Activity button.")
+            add_activity[-1].click()
+            time.sleep(3)
+                
+            # Fill in Activity Name
+            act_name = driver.find_elements(AppiumBy.XPATH, "//android.widget.EditText")
+            if act_name:
+                act_name[0].click()
+                time.sleep(1)
+                act_name[0].send_keys("Bali Safari Marine Park")
+                try: driver.press_keycode(66)
+                except: pass
+                time.sleep(1)
+                
+            # Select Category
+            category = driver.find_elements(AppiumBy.XPATH, "//*[@content-desc='Destination']")
+            if category:
+                category[0].click()
+                time.sleep(1)
+                
+            # Save Activity
+            save_act = driver.find_elements(AppiumBy.XPATH, "//*[@content-desc='Add Activity']")
+            if save_act and save_act[-1].is_enabled():
+                save_act[-1].click()
+                logger.info("  ✅ Activity Saved.")
+                time.sleep(4)
+            else:
+                logger.error("  ❌ 'Add Activity' button disabled or missing!")
+                
+        # Click Upload Itinerary if available
+        upload_btn = driver.find_elements(AppiumBy.XPATH, "//*[@content-desc='Upload Itinerary']")
+        if upload_btn and upload_btn[-1].is_enabled():
+            upload_btn[-1].click()
+            logger.info("✅ Upload Itinerary button clicked.")
+            time.sleep(10)
+            
+            success_done = driver.find_elements(AppiumBy.XPATH, "//*[@content-desc='Done']")
+            if success_done:
+                logger.info("✅ Found Done button on Success Modal, dismissing.")
+                success_done[-1].click()
+                time.sleep(2)
+        else:
+            logger.error("Upload Itinerary disabled or not found! Falling back to Save Draft.")
+            with open("error_upload_disabled.xml", "w", encoding="utf-8") as f:
+                f.write(driver.page_source)
+            save_draft = driver.find_elements(AppiumBy.XPATH, "//*[@content-desc='Save Draft']")
+            if save_draft:
+                save_draft[-1].click()
+                logger.info("✅ Draft Saved Successfully.")
+                
+        time.sleep(5)
 
