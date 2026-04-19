@@ -128,10 +128,8 @@ class TestSearchInput:
             time.sleep(2)
             logger.info("✅ Typed 'Bali' in search field")
 
-            try:
-                driver.hide_keyboard()
-            except Exception:
-                pass
+            # Safe keyboard hide
+            driver.tap([(540, 200)])
 
             # Clear and go back
             driver.back()

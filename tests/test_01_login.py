@@ -51,7 +51,20 @@ def _navigate_to_login_screen(driver):
     logger.info("  🔍 Checking current app state...")
     
     state = _wait_for_app_ready(driver, timeout=20)
-    
+
+    # If stuck in some random page, restart app to get back to a known state (home or login)
+    if state not in ("login", "home"):
+        logger.info("  🔄 App stuck in sub-page. Restarting app to reach a known state...")
+        try:
+            driver.terminate_app("com.mepo")
+            time.sleep(2)
+            driver.activate_app("com.mepo")
+            time.sleep(10)
+            state = _wait_for_app_ready(driver, timeout=15)
+        except Exception as e:
+            logger.error(f"  ❌ App restart failed: {e}")
+            return False
+            
     if state == "login":
         logger.info("  ✅ Already on login screen")
         return True
@@ -109,18 +122,7 @@ def _navigate_to_login_screen(driver):
         except Exception as e:
             logger.warning(f"  ⚠ Logout attempt failed: {e}")
     
-    # Fallback: restart app
-    logger.info("  🔄 Restarting app to get login screen...")
-    try:
-        driver.terminate_app("com.mepo")
-        time.sleep(2)
-        driver.activate_app("com.mepo")
-        time.sleep(10)
-        state = _wait_for_app_ready(driver, timeout=15)
-        return state == "login"
-    except Exception as e:
-        logger.error(f"  ❌ App restart failed: {e}")
-        return False
+    return False
 
 
 def _clear_and_type(element, text):
@@ -147,11 +149,8 @@ def _do_login(driver, email, password):
     # Clear and fill password
     _clear_and_type(edits[1], password)
 
-    # Hide keyboard
-    try:
-        driver.hide_keyboard()
-    except Exception:
-        pass
+    # Safe keyboard hide
+    driver.tap([(540, 200)])
     time.sleep(0.5)
 
     # Tap Login button
@@ -227,10 +226,8 @@ class TestLoginNegative:
         if len(edits) >= 2:
             _clear_and_type(edits[0], VALID_EMAIL)
             _clear_and_type(edits[1], "")
-            try:
-                driver.hide_keyboard()
-            except Exception:
-                pass
+            # Safe keyboard hide
+            driver.tap([(540, 200)])
 
             for loc in [
                 (AppiumBy.ACCESSIBILITY_ID, "Login"),
@@ -307,10 +304,8 @@ class TestLoginPositive:
         _clear_and_type(edits[1], VALID_PASSWORD)
         logger.info("🔑 Password entered")
 
-        try:
-            driver.hide_keyboard()
-        except Exception:
-            pass
+        # Safe keyboard hide
+        driver.tap([(540, 200)])
 
         # Tap Login
         for loc in [
