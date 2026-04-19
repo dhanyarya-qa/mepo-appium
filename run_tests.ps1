@@ -31,8 +31,8 @@ if (-Not (Test-Path $adbPath)) {
     exit 1
 }
 
-# Try to connect device
-& $adbPath connect 192.168.1.62:38549 2>$null
+# Try to Connect to IP/Port specifically provided
+& $adbPath connect 192.168.1.62:37525 | Out-Null
 Start-Sleep -Seconds 2
 
 $devices = & $adbPath devices

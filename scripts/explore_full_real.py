@@ -14,20 +14,12 @@ logger = logging.getLogger(__name__)
 OUT = "reports/real_device"
 os.makedirs(OUT, exist_ok=True)
 
-caps = {
-    "platformName": "Android",
-    "appium:automationName": "UiAutomator2",
-    "appium:deviceName": "23124RA7EO",
-    "appium:platformVersion": "15",
-    "appium:udid": "192.168.1.62:41821",
-    "appium:appPackage": "com.mepo",
-    "appium:appActivity": "com.mepo.MainActivity",
-    "appium:noReset": False,
-    "appium:newCommandTimeout": 300,
-    "appium:forceAppLaunch": True,
-    "appium:appWaitDuration": 30000,
-    "appium:autoGrantPermissions": True,
-}
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from config.settings import AppiumConfig
+
+caps = AppiumConfig.DESIRED_CAPS.copy()
+caps['appium:udid'] = '192.168.1.62:37525'
 
 def save(driver, name):
     path = f"{OUT}/{name}.png"

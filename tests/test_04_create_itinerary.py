@@ -173,13 +173,11 @@ class TestCreateItineraryForm:
         assert len(title_field) > 0, "Title field not found"
         title_field[0].click()
         time.sleep(0.3)
-        title_field[0].send_keys("Automation Test Trip")
-        try:
-            driver.hide_keyboard()
-        except Exception:
-            pass
+        title_field[0].send_keys("[Auto-Test] Safari Trip")
+        # Safe keyboard hide
+        driver.tap([(540, 200)])
         time.sleep(1)
-        logger.info("✅ Title entered: 'Automation Test Trip'")
+        logger.info("✅ Title entered: '[Auto-Test] Safari Trip'")
 
     def test_save_button_enables_after_input(self, driver):
         """After filling title, Save button may become enabled (depends on destination too)."""
