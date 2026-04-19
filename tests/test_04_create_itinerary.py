@@ -352,39 +352,83 @@ class TestCompleteItineraryCreation:
             if done_btn: done_btn[-1].click()
             time.sleep(4)
         
-        # Click Add New Activity
-        add_activity = driver.find_elements(AppiumBy.XPATH, "//*[@content-desc='Add New Activity']")
-        if add_activity:
-            logger.info("  🏃 Found Add New Activity button.")
-            add_activity[-1].click()
-            time.sleep(3)
+        # Define the 5 activities we want to add
+        activities = [
+            {"category": "Transport", "name": "Flight to Bali", "cost": "1500000", "loc": "Soekarno Hatta", "notes": "Terminal 3 early morning"},
+            {"category": "Destination", "name": "Bali Safari Marine Park", "cost": "500000", "loc": "Gianyar", "notes": "Bring umbrella and sunscreen"},
+            {"category": "Accommodation", "name": "Ayana Resort", "cost": "2500000", "loc": "Jimbaran", "notes": "Check in, ocean view"},
+            {"category": "Culinary", "name": "Bebek Tepi Sawah", "cost": "300000", "loc": "Ubud", "notes": "Spicy duck for dinner"},
+            {"category": "Others", "name": "Buy Souvenirs", "cost": "100000", "loc": "Krisna Oleh Oleh", "notes": "Buy pie susu and shirts"}
+        ]
+        
+        # Loop through these 5 activities and add them
+        for i, act in enumerate(activities):
+            logger.info(f"  ➕ Adding Activity {i+1}/5: {act['name']} ({act['category']})")
+            
+            # Click "Add New Activity" for the 1st one, else "Add more Activity"
+            if i == 0:
+                add_btn = driver.find_elements(AppiumBy.XPATH, "//*[@content-desc='Add New Activity']")
+            else:
+                add_btn = driver.find_elements(AppiumBy.XPATH, "//*[@content-desc='Add more Activity']")
                 
-            # Fill in Activity Name
-            act_name = driver.find_elements(AppiumBy.XPATH, "//android.widget.EditText")
-            if act_name:
-                act_name[0].click()
+            if add_btn:
+                add_btn[-1].click()
+                time.sleep(3)
+            
+            # Find the 4 EditTexts (Name, Cost, Location, Notes)
+            edit_texts = driver.find_elements(AppiumBy.XPATH, "//android.widget.EditText")
+            if len(edit_texts) >= 4:
+                # 1. Name
+                edit_texts[0].click()
                 time.sleep(1)
-                act_name[0].send_keys("Bali Safari Marine Park")
+                edit_texts[0].clear()
+                edit_texts[0].send_keys(act["name"])
+                try: driver.press_keycode(66) # ENTER
+                except: pass
+                
+                # 2. Cost
+                edit_texts[1].click()
+                time.sleep(1)
+                edit_texts[1].clear()
+                edit_texts[1].send_keys(act["cost"])
+                try: driver.press_keycode(66)
+                except: pass
+                
+                # 3. Location (beware of autocomplete dropdown)
+                edit_texts[2].click()
+                time.sleep(1)
+                edit_texts[2].clear()
+                edit_texts[2].send_keys(act["loc"])
+                try: driver.press_keycode(66)
+                except: pass
+                
+                # 4. Notes
+                edit_texts[3].click()
+                time.sleep(1)
+                edit_texts[3].clear()
+                edit_texts[3].send_keys(act["notes"])
                 try: driver.press_keycode(66)
                 except: pass
                 time.sleep(1)
+            else:
+                logger.error(f"  ❌ Not enough EditText fields found! Found: {len(edit_texts)}")
                 
             # Select Category
-            category = driver.find_elements(AppiumBy.XPATH, "//*[@content-desc='Destination']")
-            if category:
-                category[0].click()
+            category_icon = driver.find_elements(AppiumBy.XPATH, f"//*[@content-desc='{act['category']}']")
+            if category_icon:
+                category_icon[0].click()
                 time.sleep(1)
                 
             # Save Activity
-            save_act = driver.find_elements(AppiumBy.XPATH, "//*[@content-desc='Add Activity']")
-            if save_act and save_act[-1].is_enabled():
-                save_act[-1].click()
-                logger.info("  ✅ Activity Saved.")
-                time.sleep(4)
+            save_act_btn = driver.find_elements(AppiumBy.XPATH, "//*[@content-desc='Add Activity']")
+            if save_act_btn and save_act_btn[-1].is_enabled():
+                save_act_btn[-1].click()
+                logger.info(f"  ✅ '{act['name']}' Saved successfully.")
+                time.sleep(5) # Wait thoroughly for save transition
             else:
-                logger.error("  ❌ 'Add Activity' button disabled or missing!")
+                logger.error(f"  ❌ 'Add Activity' button disabled or missing for {act['name']}!")
                 
-        # Click Upload Itinerary if available
+        # After adding all 5 activities, attempt to Upload Itinerary
         upload_btn = driver.find_elements(AppiumBy.XPATH, "//*[@content-desc='Upload Itinerary']")
         if upload_btn and upload_btn[-1].is_enabled():
             upload_btn[-1].click()
@@ -403,7 +447,7 @@ class TestCompleteItineraryCreation:
             save_draft = driver.find_elements(AppiumBy.XPATH, "//*[@content-desc='Save Draft']")
             if save_draft:
                 save_draft[-1].click()
-                logger.info("✅ Draft Saved Successfully.")
+                logger.info("✅ Draft Saved Successfully to User Profile.")
                 
         time.sleep(5)
 
