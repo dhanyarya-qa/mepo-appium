@@ -6,3 +6,4 @@ selenium>=4.12,<4.26
 allure-pytest==2.13.5
 python-dotenv==1.0.1
 pytest-rerunfailures>=14.0
+yopmail>=1.9
