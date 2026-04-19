@@ -126,14 +126,12 @@ def _navigate_to_login_screen(driver):
 
 
 def _clear_and_type(element, text):
-    """Safely clear a field and type text."""
+    """Safely click a field and type text."""
     element.click()
-    time.sleep(0.3)
-    element.clear()
-    time.sleep(0.2)
+    time.sleep(0.5)
     if text:
         element.send_keys(text)
-    time.sleep(0.2)
+    time.sleep(0.5)
 
 
 def _do_login(driver, email, password):

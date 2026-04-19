@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from config.settings import AppiumConfig
 
 caps = AppiumConfig.DESIRED_CAPS.copy()
-caps['appium:udid'] = '192.168.1.62:37525'
+caps['appium:udid'] = '192.168.1.62:39845'
 
 def save(driver, name):
     path = f"{OUT}/{name}.png"
