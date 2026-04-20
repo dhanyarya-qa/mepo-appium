@@ -109,6 +109,41 @@ def driver():
 
 
 @pytest.fixture(autouse=True)
+def ensure_mepo_foreground(request, driver):
+    """
+    Auto-recovery: Before each test, ensure Mepo app is in the foreground.
+    If another app (WhatsApp, system dialog, etc.) is on top, dismiss it
+    and bring Mepo back. This prevents false failures from pop-ups.
+    """
+    try:
+        current_pkg = driver.current_package
+        if current_pkg and current_pkg != "com.mepo":
+            logger.warning(f"  ⚠ Wrong app in foreground: {current_pkg} — recovering...")
+
+            # Press back to dismiss any dialog
+            for _ in range(3):
+                try:
+                    driver.press_keycode(4)  # KEYCODE_BACK
+                    time.sleep(0.5)
+                except Exception:
+                    pass
+
+            # Force-activate Mepo
+            driver.activate_app("com.mepo")
+            time.sleep(2)
+
+            new_pkg = driver.current_package
+            if new_pkg == "com.mepo":
+                logger.info(f"  ✅ Recovered — Mepo is now in foreground")
+            else:
+                logger.warning(f"  ⚠ Still on {new_pkg} — test may fail")
+    except Exception as e:
+        logger.warning(f"  ⚠ Foreground check failed: {e}")
+
+    yield
+
+
+@pytest.fixture(autouse=True)
 def video_recording(request, driver):
     """
     Starts screen recording before a test and stops it after.
