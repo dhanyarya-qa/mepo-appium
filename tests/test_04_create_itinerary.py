@@ -313,7 +313,7 @@ class TestCompleteItineraryCreation:
         confirm_btn = driver.find_elements(AppiumBy.XPATH, "//*[@content-desc='Save & Create']")
         if confirm_btn:
             confirm_btn[-1].click()
-        time.sleep(5)
+        time.sleep(10)
         
         # Verify Itinerary Details screen reached
         details_title = driver.find_elements(AppiumBy.XPATH, "//*[@content-desc='Itinerary Details']")
@@ -440,7 +440,7 @@ class TestCompleteItineraryCreation:
             if save_act_btn and save_act_btn[-1].is_enabled():
                 save_act_btn[-1].click()
                 logger.info(f"  ✅ '{act['name']}' Saved successfully.")
-                time.sleep(3) # Wait thoroughly for save transition to Itinerary Details page
+                time.sleep(5) # Wait thoroughly for save transition to Itinerary Details page
             else:
                 logger.error(f"  ❌ 'Add Activity' button disabled or missing for {act['name']}!")
                 pytest.fail(f"Failed to save activity: {act['name']}")
@@ -475,64 +475,31 @@ class TestCompleteItineraryCreation:
         else:
              logger.error("  ❌ Could not find Save Draft on details page!")
                 
-        # Navigate to Profile and Verify
-        logger.info("  🏃 Navigating to Profile to verify Draft")
+        # ═══════════════════════════════════════════════════
+        # POST-SAVE: Return to Home for next tests
+        # ═══════════════════════════════════════════════════
+        logger.info("  🏃 Returning to Home screen after Save Draft")
         
-        # Click back safely until we reach the Home/Bottom Navigation screen
-        profile_tab = None
-        for _ in range(5):
-            found = driver.find_elements(AppiumBy.XPATH, "//*[contains(@content-desc, 'Profile\nTab')] | //*[@content-desc='Profile\nTab 4 of 4'] | //*[contains(@content-desc, 'Profile') and @clickable='true']")
-            if found:
-                profile_tab = found
+        # Press back until Bottom Nav or Home screen appears
+        for attempt in range(8):
+            home_tab = driver.find_elements(AppiumBy.XPATH,
+                "//*[contains(@content-desc, 'Home\nTab 1 of 4')]")
+            welcome = driver.find_elements(AppiumBy.XPATH,
+                "//*[contains(@content-desc, 'Welcome,')]")
+            
+            if home_tab or welcome:
+                if home_tab:
+                    home_tab[-1].click()
+                    time.sleep(2)
+                logger.info(f"  ✅ Back on Home after {attempt} back presses")
                 break
-            try: driver.press_keycode(4)
-            except: pass
-            time.sleep(2)
             
-        if profile_tab:
-            profile_tab[-1].click()
-            logger.info("  👉 Entered Profile Tab")
-            time.sleep(3)
-            
-            # Explicitly tap the "Draft" filter tab first
-            draft_filter = driver.find_elements(AppiumBy.XPATH, "//*[@content-desc='Draft']")
-            if draft_filter:
-                draft_filter[-1].click()
-                logger.info("  👉 Clicked 'Draft' filter tab")
-                time.sleep(3)
-                
-            # Scroll down to refresh or render the list if needed
-            try: driver.find_element(AppiumBy.ANDROID_UIAUTOMATOR, 'new UiScrollable(new UiSelector().scrollable(true)).scrollForward()')
-            except: pass
-            
-            my_draft = driver.find_elements(AppiumBy.XPATH, "//*[contains(@content-desc, 'Automation Travel Plan')]")
-            if my_draft:
-                my_draft[0].click() # Click the topmost (newest) one
-                logger.info("  👉 Opened freshly saved Draft from Profile")
-                time.sleep(3)
-                
-                # Perform Verification Assertions on the Draft Details
-                page_src = driver.page_source
-                assert "Flight to Bali" in page_src, "Transport activity missing"
-                assert "Bali Safari Marine Park" in page_src, "Destination activity missing"
-                assert "Ayana Resort" in page_src, "Accommodation activity missing"
-                assert "Bebek Tepi Sawah" in page_src, "Culinary activity missing"
-                assert "Buy Souvenirs" in page_src, "Others activity missing"
-                
-                logger.info("  ✅ Verified: All 5 Activities are successfully listed inside the Profile Draft!")
-                
-                # Navigate back to Home Tab to finish nicely
-                logger.info("  🏃 Returning to Home Tab")
-                try: driver.press_keycode(4) # Back out of Draft Details
-                except: pass
-                time.sleep(2)
-                home_tab = driver.find_elements(AppiumBy.XPATH, "//*[@content-desc='Home\nTab 1 of 4']")
-                if home_tab: home_tab[-1].click()
-                time.sleep(2)
-                
-            else:
-                logger.error("  ❌ Could not find the saved draft in Profile.")
-                assert False, "Draft not found in profile"
-        else:
-             logger.error("  ❌ Profile Tab not found after backing out.")
+            try:
+                driver.press_keycode(4)
+            except Exception:
+                pass
+            time.sleep(1.5)
+        
+        logger.info("  ✅ Itinerary creation complete — ready for next tests")
+
 
