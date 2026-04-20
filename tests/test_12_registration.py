@@ -32,7 +32,11 @@ pytestmark = [pytest.mark.login, pytest.mark.regression]
 
 MAILTM_BASE = "https://api.mail.tm"
 
-RND          = random.randint(1000, 9999)
+# Timestamp + random suffix → guaranteed unique every single run
+# Example: autoqa17139284_37@domain.com  (never repeats)
+import hashlib
+from datetime import datetime
+RND          = f"{int(datetime.now().timestamp())}_{random.randint(10, 99)}"
 MAILTM_PASS  = "AutoTest123!"
 PASSWORD     = "Sandi123!"
 
@@ -422,3 +426,140 @@ class TestRegistration:
             "//android.widget.Button[@content-desc='Login']")
         assert len(login_btn) > 0, "❌ Could not navigate back to Login screen"
         logger.info("✅ Successfully returned to Login screen")
+
+    def test_06_login_with_new_account(self, driver):
+        """Login using the freshly registered account to verify it works."""
+        email = _test_state["email"]
+        logger.info(f"\n=== REGISTRATION: Step 6 — Login with New Account ===")
+        logger.info(f"  📧 Email: {email}")
+        logger.info(f"  🔒 Password: {PASSWORD}")
+
+        assert email, "❌ No email saved from registration (previous steps may have failed)"
+
+        # Make sure we're on login screen
+        login_btn = driver.find_elements(AppiumBy.XPATH,
+            "//android.widget.Button[@content-desc='Login']")
+        if not login_btn:
+            assert _ensure_login_screen(driver), "❌ Not on Login screen"
+
+        # Fill email
+        email_fields = driver.find_elements(AppiumBy.XPATH, "//android.widget.EditText")
+        assert len(email_fields) >= 1, "❌ Email field not found on login screen"
+        email_fields[0].click(); time.sleep(0.3)
+        email_fields[0].send_keys(email); time.sleep(0.5)
+        logger.info(f"  ✍ Email entered")
+
+        # Fill password
+        password_fields = driver.find_elements(AppiumBy.XPATH,
+            "//android.widget.EditText[@password='true']")
+        if not password_fields:
+            # Fallback: get the second EditText
+            all_fields = driver.find_elements(AppiumBy.XPATH, "//android.widget.EditText")
+            if len(all_fields) >= 2:
+                password_fields = [all_fields[1]]
+
+        assert password_fields, "❌ Password field not found"
+        password_fields[0].click(); time.sleep(0.3)
+        password_fields[0].send_keys(PASSWORD); time.sleep(0.5)
+        logger.info(f"  ✍ Password entered")
+
+        # Hide keyboard
+        try:
+            driver.hide_keyboard()
+        except Exception:
+            driver.tap([(540, 200)])
+        time.sleep(1)
+
+        # Tap Login button
+        login_btn = driver.find_elements(AppiumBy.XPATH,
+            "//android.widget.Button[@content-desc='Login']")
+        assert login_btn, "❌ Login button not found"
+        login_btn[0].click()
+        logger.info("  👉 Tapped 'Login' button")
+        time.sleep(8)
+
+        # Verify login success — look for Welcome greeting or Home tab
+        welcome = driver.find_elements(AppiumBy.XPATH,
+            "//*[contains(@content-desc, 'Welcome,')]")
+        home_tab = driver.find_elements(AppiumBy.XPATH,
+            "//*[contains(@content-desc, 'Home\nTab 1 of 4')]")
+
+        assert welcome or home_tab, \
+            "❌ Login failed — no Welcome or Home screen detected after login"
+        logger.info(f"✅ Login SUCCESSFUL with newly registered account!")
+
+    def test_07_logout_new_account(self, driver):
+        """Logout from the new account and return to Login screen for next tests."""
+        logger.info("\n=== REGISTRATION: Step 7 — Logout New Account ===")
+
+        # Navigate to Home first
+        home_tab = driver.find_elements(AppiumBy.XPATH,
+            "//*[contains(@content-desc, 'Home\nTab 1 of 4')]")
+        if home_tab:
+            home_tab[-1].click()
+            time.sleep(2)
+
+        # Go to Profile tab
+        profile_tab = driver.find_elements(AppiumBy.XPATH,
+            "//*[contains(@content-desc, 'Profile\nTab 4 of 4')]")
+        if not profile_tab:
+            profile_tab = driver.find_elements(AppiumBy.XPATH,
+                "//*[contains(@content-desc, 'Profile') and contains(@content-desc, 'Tab')]")
+        assert profile_tab, "❌ Profile Tab not found"
+        profile_tab[-1].click()
+        time.sleep(5)
+        logger.info("  👉 Entered Profile Tab")
+
+        # Tap Settings button (last button in header)
+        buttons = driver.find_elements(AppiumBy.XPATH,
+            "//android.widget.Button[@clickable='true']")
+        assert len(buttons) >= 2, "❌ Settings button not found"
+        buttons[-1].click()
+        time.sleep(3)
+        logger.info("  👉 Opened Settings")
+
+        # Find and tap Logout
+        s = driver.get_window_size()
+        for attempt in range(5):
+            logout_el = driver.find_elements(AppiumBy.XPATH,
+                "//*[contains(@content-desc, 'Logout') "
+                "or contains(@content-desc, 'Log Out') "
+                "or contains(@content-desc, 'Sign Out') "
+                "or contains(@content-desc, 'Log out')]")
+            if logout_el:
+                logout_el[0].click()
+                time.sleep(3)
+                logger.info("  👉 Tapped Logout")
+                break
+            # Scroll down to find it
+            driver.swipe(s['width']//2, int(s['height']*0.75),
+                        s['width']//2, int(s['height']*0.25), 800)
+            time.sleep(1)
+
+        # Confirm logout dialog
+        confirm = driver.find_elements(AppiumBy.XPATH,
+            "//*[contains(@content-desc, 'Yes') "
+            "or contains(@content-desc, 'OK') "
+            "or contains(@content-desc, 'Confirm') "
+            "or contains(@content-desc, 'Continue') "
+            "or contains(@content-desc, 'continue') "
+            "or contains(@content-desc, 'Logout') "
+            "or contains(@content-desc, 'Log Out')]")
+        if confirm:
+            confirm[0].click()
+            time.sleep(5)
+            logger.info("  👉 Logout confirmed")
+
+        # Verify back on Login screen
+        time.sleep(3)
+        login_screen = driver.find_elements(AppiumBy.XPATH,
+            "//*[contains(@content-desc, 'Welcome Back')]")
+        login_btn = driver.find_elements(AppiumBy.XPATH,
+            "//android.widget.Button[@content-desc='Login']")
+        edit_texts = driver.find_elements(AppiumBy.XPATH,
+            "//android.widget.EditText")
+
+        assert login_screen or login_btn or edit_texts, \
+            "❌ Not on Login screen after logout"
+        logger.info("✅ Logged out — back on Login screen, ready for next tests!")
+
