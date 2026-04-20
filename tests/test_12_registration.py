@@ -492,34 +492,76 @@ class TestRegistration:
         """Logout from the new account and return to Login screen for next tests."""
         logger.info("\n=== REGISTRATION: Step 7 — Logout New Account ===")
 
-        # Navigate to Home first
-        home_tab = driver.find_elements(AppiumBy.XPATH,
-            "//*[contains(@content-desc, 'Home\nTab 1 of 4')]")
-        if home_tab:
-            home_tab[-1].click()
-            time.sleep(2)
-
-        # Go to Profile tab
+        # ── Step A: Navigate to Profile page ──
+        # Try Bottom Nav first (may not be visible)
         profile_tab = driver.find_elements(AppiumBy.XPATH,
             "//*[contains(@content-desc, 'Profile\nTab 4 of 4')]")
         if not profile_tab:
             profile_tab = driver.find_elements(AppiumBy.XPATH,
                 "//*[contains(@content-desc, 'Profile') and contains(@content-desc, 'Tab')]")
-        assert profile_tab, "❌ Profile Tab not found"
-        profile_tab[-1].click()
-        time.sleep(5)
-        logger.info("  👉 Entered Profile Tab")
 
-        # Tap Settings button (last button in header)
-        buttons = driver.find_elements(AppiumBy.XPATH,
-            "//android.widget.Button[@clickable='true']")
-        assert len(buttons) >= 2, "❌ Settings button not found"
-        buttons[-1].click()
-        time.sleep(3)
-        logger.info("  👉 Opened Settings")
+        if profile_tab:
+            profile_tab[-1].click()
+            time.sleep(5)
+            logger.info("  👉 Entered Profile via Bottom Nav Tab")
+        else:
+            # Fallback: tap profile icon in header (top-right, visible in screenshot)
+            # From the screenshot: profile icon is at far right of the header row
+            # Use content-desc or last clickable ImageView in header
+            profile_icons = driver.find_elements(AppiumBy.XPATH,
+                "//android.view.View[@clickable='true']")
+            if not profile_icons:
+                profile_icons = driver.find_elements(AppiumBy.XPATH,
+                    "//android.widget.ImageView[@clickable='true']")
 
-        # Find and tap Logout
+            # Profile icon is usually the last clickable icon in the top header area
+            # Filter for elements in the top 300px of the screen
+            header_icons = []
+            for el in profile_icons:
+                try:
+                    loc = el.location
+                    if loc['y'] < 300:
+                        header_icons.append(el)
+                except Exception:
+                    pass
+
+            if header_icons:
+                header_icons[-1].click()  # Last icon in header = profile
+                time.sleep(5)
+                logger.info("  👉 Entered Profile via header icon (last icon)")
+            else:
+                # Last resort: tap coordinate of profile icon from screenshot
+                driver.tap([(640, 130)], 500)
+                time.sleep(5)
+                logger.info("  👉 Entered Profile via coordinate tap (640, 130)")
+
+        # ── Step B: Navigate to Settings ──
+        # Check if we're on My Profile page
+        my_profile = driver.find_elements(AppiumBy.XPATH,
+            "//*[@content-desc='My Profile']")
+        if my_profile:
+            logger.info("  ✅ On Profile page")
+            # Tap Settings button (usually last button in header)
+            buttons = driver.find_elements(AppiumBy.XPATH,
+                "//android.widget.Button[@clickable='true']")
+            if len(buttons) >= 2:
+                buttons[-1].click()
+                time.sleep(3)
+                logger.info("  👉 Opened Settings")
+            else:
+                # Try finding settings by content-desc
+                settings = driver.find_elements(AppiumBy.XPATH,
+                    "//*[contains(@content-desc, 'Settings') or contains(@content-desc, 'Setting')]")
+                if settings:
+                    settings[0].click()
+                    time.sleep(3)
+                    logger.info("  👉 Opened Settings via content-desc")
+        else:
+            logger.info("  ℹ Not on My Profile page — trying to find Settings/Logout directly")
+
+        # ── Step C: Find and tap Logout ──
         s = driver.get_window_size()
+        found_logout = False
         for attempt in range(5):
             logout_el = driver.find_elements(AppiumBy.XPATH,
                 "//*[contains(@content-desc, 'Logout') "
@@ -530,13 +572,31 @@ class TestRegistration:
                 logout_el[0].click()
                 time.sleep(3)
                 logger.info("  👉 Tapped Logout")
+                found_logout = True
                 break
-            # Scroll down to find it
+            # Scroll down to find Logout
             driver.swipe(s['width']//2, int(s['height']*0.75),
                         s['width']//2, int(s['height']*0.25), 800)
             time.sleep(1)
 
-        # Confirm logout dialog
+        if not found_logout:
+            logger.warning("  ⚠ Logout button not found — trying UiScrollable")
+            try:
+                driver.find_element(
+                    AppiumBy.ANDROID_UIAUTOMATOR,
+                    'new UiScrollable(new UiSelector().scrollable(true)).scrollIntoView(new UiSelector().descriptionContains("Logout"))')
+                time.sleep(1)
+                logout_el = driver.find_elements(AppiumBy.XPATH,
+                    "//*[contains(@content-desc, 'Logout')]")
+                if logout_el:
+                    logout_el[0].click()
+                    time.sleep(3)
+                    found_logout = True
+                    logger.info("  👉 Tapped Logout (via UiScrollable)")
+            except Exception:
+                pass
+
+        # ── Step D: Confirm logout dialog ──
         confirm = driver.find_elements(AppiumBy.XPATH,
             "//*[contains(@content-desc, 'Yes') "
             "or contains(@content-desc, 'OK') "
@@ -550,7 +610,7 @@ class TestRegistration:
             time.sleep(5)
             logger.info("  👉 Logout confirmed")
 
-        # Verify back on Login screen
+        # ── Step E: Verify back on Login screen ──
         time.sleep(3)
         login_screen = driver.find_elements(AppiumBy.XPATH,
             "//*[contains(@content-desc, 'Welcome Back')]")
