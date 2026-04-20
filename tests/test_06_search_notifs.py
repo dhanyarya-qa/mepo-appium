@@ -56,7 +56,7 @@ class TestSearchExplore:
         else:
             # Fallback to coordinate (search icon top-right area)
             driver.tap([(747, 245)], 500)
-        time.sleep(5)
+        time.sleep(3)
 
         # Verify: page title "Explore Itinerary"
         title = driver.find_elements(AppiumBy.XPATH,
@@ -152,7 +152,7 @@ class TestNotifications:
         else:
             # Fallback to coordinate (notification bell top-right)
             driver.tap([(863, 245)], 500)
-        time.sleep(5)
+        time.sleep(3)
 
         # Verify: page title "Notification"
         title = driver.find_elements(AppiumBy.XPATH,

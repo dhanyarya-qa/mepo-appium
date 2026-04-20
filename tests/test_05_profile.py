@@ -48,11 +48,11 @@ def _navigate_to_profile(driver):
             "//*[contains(@content-desc, 'Profile') and contains(@content-desc, 'Tab')]")
     if profile_tab:
         profile_tab[-1].click()
-        time.sleep(5)
+        time.sleep(3)
     else:
         # Fallback: tap the top-right profile icon
         driver.tap([(978, 245)], 500)
-        time.sleep(5)
+        time.sleep(3)
 
     # Verify profile page loaded
     title = driver.find_elements(AppiumBy.XPATH,

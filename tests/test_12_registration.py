@@ -297,7 +297,7 @@ class TestRegistration:
 
         reg_btn[0].click()
         logger.info("  👉 Tapped 'Register' button — OTP should be sent to inbox")
-        time.sleep(5)
+        time.sleep(3)
 
     def test_04_fetch_otp_and_enter(self, driver):
         """Poll mail.tm inbox for OTP email, extract digits, enter in app."""
@@ -352,7 +352,7 @@ class TestRegistration:
                                 break
             except Exception as e:
                 logger.warning(f"  ⚠ Poll error: {e}")
-            time.sleep(5)
+            time.sleep(3)
 
         if not otp_code:
             pytest.skip("⚠ Could not retrieve OTP from mail.tm — check if Mepo sent the email")
@@ -388,7 +388,7 @@ class TestRegistration:
             if verify_btn:
                 verify_btn[0].click()
                 logger.info("  👉 Tapped Verify/Submit button")
-            time.sleep(5)
+            time.sleep(3)
 
         # Check outcome
         success = driver.find_elements(AppiumBy.XPATH,
@@ -476,7 +476,7 @@ class TestRegistration:
         assert login_btn, "❌ Login button not found"
         login_btn[0].click()
         logger.info("  👉 Tapped 'Login' button")
-        time.sleep(8)
+        time.sleep(3)
 
         # Verify login success — look for Welcome greeting or Home tab
         welcome = driver.find_elements(AppiumBy.XPATH,
@@ -502,7 +502,7 @@ class TestRegistration:
 
         if profile_tab:
             profile_tab[-1].click()
-            time.sleep(5)
+            time.sleep(3)
             logger.info("  👉 Entered Profile via Bottom Nav Tab")
         else:
             # Fallback: tap profile icon in header (top-right, visible in screenshot)
@@ -527,12 +527,12 @@ class TestRegistration:
 
             if header_icons:
                 header_icons[-1].click()  # Last icon in header = profile
-                time.sleep(5)
+                time.sleep(3)
                 logger.info("  👉 Entered Profile via header icon (last icon)")
             else:
                 # Last resort: tap coordinate of profile icon from screenshot
                 driver.tap([(640, 130)], 500)
-                time.sleep(5)
+                time.sleep(3)
                 logger.info("  👉 Entered Profile via coordinate tap (640, 130)")
 
         # ── Step B: Navigate to Settings ──
@@ -607,7 +607,7 @@ class TestRegistration:
             "or contains(@content-desc, 'Log Out')]")
         if confirm:
             confirm[0].click()
-            time.sleep(5)
+            time.sleep(3)
             logger.info("  👉 Logout confirmed")
 
         # ── Step E: Verify back on Login screen ──

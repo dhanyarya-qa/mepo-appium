@@ -49,11 +49,11 @@ def _open_profile(driver):
             "//*[contains(@content-desc, 'Profile') and contains(@content-desc, 'Tab')]")
     if profile_tab:
         profile_tab[-1].click()
-        time.sleep(5)
+        time.sleep(3)
     else:
         # Fallback: tap the profile icon by coordinate
         driver.tap([(978, 245)], 500)
-        time.sleep(5)
+        time.sleep(3)
 
     title = driver.find_elements(AppiumBy.XPATH,
         "//*[@content-desc='My Profile']")
@@ -77,7 +77,7 @@ class TestProfileItineraryCardDetail:
         card_desc = cards[0].get_attribute("content-desc") or "unknown"
         logger.info(f"  Tapping card: {card_desc[:60]}")
         cards[0].click()
-        time.sleep(5)
+        time.sleep(3)
 
         # Verify we navigated to detail (back button should appear)
         back_btn = driver.find_elements(AppiumBy.XPATH,
@@ -224,7 +224,7 @@ class TestProfileScrolling:
         
         if settings_btn:
             settings_btn[0].click()
-            time.sleep(4)
+            time.sleep(2)
             
             # Verify we reached a settings screen (back button and save/logout text)
             back_btn = driver.find_elements(AppiumBy.XPATH, "//android.widget.Button[@clickable='true']")

@@ -11,6 +11,7 @@ import pytest
 import time
 import logging
 from appium.webdriver.common.appiumby import AppiumBy
+from utils.wait_helpers import wait_find, FAST, NORMAL
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +59,7 @@ class TestOpenTripNavigation:
             "//*[starts-with(@content-desc, 'Open Trip')]")
         assert len(cards) > 0, "Open Trip card not found on home"
         cards[0].click()
-        time.sleep(5)
+        time.sleep(3)
 
         # Verify Open Trip page loaded
         # From XML: content-desc="Open Trip" as page title

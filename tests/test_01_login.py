@@ -11,6 +11,7 @@ import pytest
 import time
 import logging
 from appium.webdriver.common.appiumby import AppiumBy
+from utils.wait_helpers import wait_for, wait_find, wait_for_any, FAST, NORMAL, SLOW, XSLOW
 
 logger = logging.getLogger(__name__)
 
@@ -20,29 +21,19 @@ VALID_EMAIL = "danip1@yopmail.com"
 VALID_PASSWORD = "Sandi123!"
 
 
-def _wait_for_app_ready(driver, timeout=15):
+def _wait_for_app_ready(driver, timeout=10):
     """Wait for app to be fully loaded — either login or home screen."""
-    for _ in range(timeout):
-        try:
-            # Check login screen
-            edits = driver.find_elements(AppiumBy.XPATH, "//android.widget.EditText")
-            if len(edits) >= 2:
-                return "login"
-
-            # Check home screen (already logged in)
-            welcome = driver.find_elements(AppiumBy.XPATH,
-                "//*[contains(@content-desc, 'Welcome,')]")
-            if welcome:
-                return "home"
-
-            # Check Welcome Back header
-            wb = driver.find_elements(AppiumBy.XPATH,
-                "//*[contains(@content-desc, 'Welcome Back')]")
-            if wb:
-                return "login"
-        except Exception:
-            pass
-        time.sleep(1)
+    idx, els = wait_for_any(driver, [
+        "//android.widget.EditText",
+        "//*[contains(@content-desc, 'Welcome,')]",
+        "//*[contains(@content-desc, 'Welcome Back')]",
+    ], timeout=timeout)
+    if idx == 0 and len(driver.find_elements(AppiumBy.XPATH, "//android.widget.EditText")) >= 2:
+        return "login"
+    if idx == 1:
+        return "home"
+    if idx == 2:
+        return "login"
     return "unknown"
 
 
@@ -57,10 +48,9 @@ def _navigate_to_login_screen(driver):
         logger.info("  🔄 App stuck in sub-page. Restarting app to reach a known state...")
         try:
             driver.terminate_app("com.mepo")
-            time.sleep(2)
+            time.sleep(1)
             driver.activate_app("com.mepo")
-            time.sleep(10)
-            state = _wait_for_app_ready(driver, timeout=15)
+            state = _wait_for_app_ready(driver, timeout=XSLOW)
         except Exception as e:
             logger.error(f"  ❌ App restart failed: {e}")
             return False
@@ -78,10 +68,9 @@ def _navigate_to_login_screen(driver):
         logger.info("  🔄 Logout UI failed — trying app restart fallback...")
         try:
             driver.terminate_app("com.mepo")
-            time.sleep(3)
+            time.sleep(1)
             driver.activate_app("com.mepo")
-            time.sleep(10)
-            state = _wait_for_app_ready(driver, timeout=15)
+            state = _wait_for_app_ready(driver, timeout=XSLOW)
             if state == "login":
                 logger.info("  ✅ App restart brought us to login screen")
                 return True
@@ -114,7 +103,7 @@ def _perform_logout(driver):
             els = driver.find_elements(AppiumBy.XPATH, loc)
             if els:
                 els[0].click()
-                time.sleep(3)
+                time.sleep(1.5)
                 # Verify we reached profile
                 title = driver.find_elements(AppiumBy.XPATH, "//*[@content-desc='My Profile']")
                 if title:
@@ -127,8 +116,7 @@ def _perform_logout(driver):
             x_right = int(s['width'] * 0.9)
             y_top = int(s['height'] * 0.1)
             driver.tap([(x_right, y_top)], 500)
-            time.sleep(3)
-            title = driver.find_elements(AppiumBy.XPATH, "//*[@content-desc='My Profile']")
+            title = wait_find(driver, "//*[@content-desc='My Profile']", timeout=FAST)
             profile_opened = len(title) > 0
         
         if not profile_opened:
@@ -147,7 +135,7 @@ def _perform_logout(driver):
             els = driver.find_elements(AppiumBy.XPATH, loc)
             if els:
                 els[0].click()
-                time.sleep(3)
+                time.sleep(1)
                 settings_opened = True
                 break
         
@@ -157,7 +145,7 @@ def _perform_logout(driver):
                 "//android.widget.Button[@clickable='true']")
             if len(buttons) >= 2:
                 buttons[-1].click()
-                time.sleep(3)
+                time.sleep(1)
                 settings_opened = True
         
         # Find and click logout
@@ -168,30 +156,25 @@ def _perform_logout(driver):
                 "or contains(@content-desc, 'Sign out')]")
             if logout:
                 logout[0].click()
-                time.sleep(2)
+                time.sleep(1)
                 # Confirm if dialog appears
-                confirm = driver.find_elements(AppiumBy.XPATH,
+                confirm = wait_find(driver,
                     "//*[contains(@content-desc, 'Yes') "
                     "or contains(@content-desc, 'OK') "
-                    "or contains(@content-desc, 'Confirm')]")
+                    "or contains(@content-desc, 'Confirm')]", timeout=FAST)
                 if confirm:
                     confirm[0].click()
-                    time.sleep(5)
                 else:
-                    # Try tapping the Logout button itself if it acts as confirm
-                    logout2 = driver.find_elements(AppiumBy.XPATH,
-                        "//*[contains(@content-desc, 'Logout')]")
+                    logout2 = wait_find(driver, "//*[contains(@content-desc, 'Logout')]", timeout=FAST)
                     if logout2:
                         logout2[0].click()
-                        time.sleep(5)
                 break
             driver.swipe(s['width']//2, int(s['height']*0.75),
                        s['width']//2, int(s['height']*0.25), 800)
-            time.sleep(1)
+            time.sleep(0.5)
         
         # Wait for login screen
-        time.sleep(5)
-        state = _wait_for_app_ready(driver, timeout=20)
+        state = _wait_for_app_ready(driver, timeout=SLOW)
         if state == "login":
             logger.info("  ✅ Logged out → login screen ready")
             return True
@@ -246,7 +229,7 @@ def _do_login(driver, email, password):
             btn = driver.find_element(*loc)
             btn.click()
             logger.info("  🔓 Login button tapped")
-            time.sleep(5)
+            time.sleep(2)
             return True
         except Exception:
             continue
@@ -280,10 +263,9 @@ def _reset_to_login(driver):
     # If somehow landed on home, restart
     try:
         driver.terminate_app("com.mepo")
-        time.sleep(2)
+        time.sleep(1)
         driver.activate_app("com.mepo")
-        time.sleep(10)
-        return _wait_for_app_ready(driver, timeout=10) == "login"
+        return _wait_for_app_ready(driver, timeout=XSLOW) == "login"
     except Exception:
         return False
 
@@ -403,12 +385,8 @@ class TestLoginPositive:
             except Exception:
                 continue
 
-        # Wait for home screen
-        time.sleep(10)
-
-        # Verify — "Welcome, danip" should be visible
-        welcome = driver.find_elements(AppiumBy.XPATH,
-            "//*[contains(@content-desc, 'Welcome,')]")
+        # Wait for home screen (smart wait — up to 12s but usually 3-5s)
+        welcome = wait_find(driver, "//*[contains(@content-desc, 'Welcome,')]", timeout=XSLOW)
         assert len(welcome) > 0, "Home screen not reached — login failed"
 
         driver.save_screenshot("reports/screenshots/login_success.png")

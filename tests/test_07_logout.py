@@ -12,6 +12,7 @@ import pytest
 import time
 import logging
 from appium.webdriver.common.appiumby import AppiumBy
+from utils.wait_helpers import wait_find, wait_for_any, FAST, NORMAL, SLOW
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +48,7 @@ class TestLogout:
 
         # Tap profile icon (top-right) — bounds [921,201][1036,289]
         driver.tap([(978, 245)], 500)
-        time.sleep(5)
+        time.sleep(3)
 
         title = driver.find_elements(AppiumBy.XPATH,
             "//*[@content-desc='My Profile']")
@@ -65,7 +66,7 @@ class TestLogout:
 
         # Settings is the last button in the header
         buttons[-1].click()
-        time.sleep(3)
+        time.sleep(1.5)
         logger.info("✅ Settings page opened")
 
     def test_find_logout(self, driver):
@@ -83,14 +84,14 @@ class TestLogout:
                 "or contains(@content-desc, 'Log out')]")
             if logout_elements:
                 logout_elements[0].click()
-                time.sleep(3)
+                time.sleep(1.5)
                 logger.info("✅ Logout button tapped")
                 break
 
             # Scroll down to find it
             driver.swipe(s['width']//2, int(s['height']*0.75),
                         s['width']//2, int(s['height']*0.25), 800)
-            time.sleep(1)
+            time.sleep(0.5)
 
     def test_confirm_logout(self, driver):
         """Confirm logout in dialog if present."""
@@ -108,7 +109,7 @@ class TestLogout:
 
         if confirm_buttons:
             confirm_buttons[0].click()
-            time.sleep(5)
+            time.sleep(2)
             logger.info("✅ Logout confirmed")
         else:
             logger.info("ℹ No confirmation dialog (direct logout)")
@@ -117,7 +118,7 @@ class TestLogout:
         """Should be on login screen after logout."""
         logger.info("\n=== LOGOUT: Verify Logged Out ===")
 
-        time.sleep(5)
+        time.sleep(2)
 
         # Check for login screen indicators
         # From XML: content-desc="Welcome Back!", EditText elements

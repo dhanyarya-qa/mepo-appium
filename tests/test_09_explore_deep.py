@@ -19,18 +19,18 @@ pytestmark = [pytest.mark.search, pytest.mark.regression]
 
 
 def _go_home(driver):
-    """Go back to home screen."""
+    """Navigate to home screen safely via Bottom Nav tab."""
     for _ in range(5):
-        welcome = driver.find_elements(AppiumBy.XPATH,
-            "//*[contains(@content-desc, 'Welcome,')]")
-        if welcome:
-            s = driver.get_window_size()
-            for _ in range(4):
-                driver.swipe(s['width']//2, int(s['height']*0.25),
-                            s['width']//2, int(s['height']*0.75), 600)
-                time.sleep(0.3)
+        home_tab = driver.find_elements(AppiumBy.XPATH,
+            "//*[contains(@content-desc, 'Home\nTab 1 of 4')]")
+        if home_tab:
+            home_tab[-1].click()
+            time.sleep(2)
             return True
-        driver.back()
+        try:
+            driver.press_keycode(4)
+        except Exception:
+            pass
         time.sleep(2)
     return False
 
@@ -39,9 +39,16 @@ def _open_search(driver):
     """Open the Explore Itinerary page from home."""
     _go_home(driver)
     time.sleep(1)
-    # Search icon at [690,201][805,289]
-    driver.tap([(747, 245)], 500)
-    time.sleep(5)
+
+    # Use semantic locator for Explore tab
+    search_icon = driver.find_elements(AppiumBy.XPATH,
+        "//*[contains(@content-desc, 'Explore\nTab 2 of 4')] | //*[contains(@content-desc, 'Search\nTab')]")
+    if search_icon:
+        search_icon[-1].click()
+    else:
+        # Fallback: coordinate
+        driver.tap([(747, 245)], 500)
+    time.sleep(3)
 
     title = driver.find_elements(AppiumBy.XPATH,
         "//*[@content-desc='Explore Itinerary']")
@@ -61,7 +68,7 @@ class TestSearchCityCards:
         assert len(depok) > 0, "Depok card not found"
 
         depok[0].click()
-        time.sleep(5)
+        time.sleep(3)
 
         # Should navigate to filtered results or city view
         # Just verify we left the explore page or content changed
@@ -182,7 +189,7 @@ class TestSearchRecommendedCards:
         card_desc = cards[0].get_attribute("content-desc") or "unknown"
         logger.info(f"  Tapping card: {card_desc[:50]}")
         cards[0].click()
-        time.sleep(5)
+        time.sleep(3)
 
         # Should open detail — verify by checking for back button
         back_btn = driver.find_elements(AppiumBy.XPATH,

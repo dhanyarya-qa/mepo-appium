@@ -313,7 +313,7 @@ class TestCompleteItineraryCreation:
         confirm_btn = driver.find_elements(AppiumBy.XPATH, "//*[@content-desc='Save & Create']")
         if confirm_btn:
             confirm_btn[-1].click()
-        time.sleep(10)
+        time.sleep(5)
         
         # Verify Itinerary Details screen reached
         details_title = driver.find_elements(AppiumBy.XPATH, "//*[@content-desc='Itinerary Details']")
@@ -440,7 +440,7 @@ class TestCompleteItineraryCreation:
             if save_act_btn and save_act_btn[-1].is_enabled():
                 save_act_btn[-1].click()
                 logger.info(f"  ✅ '{act['name']}' Saved successfully.")
-                time.sleep(5) # Wait thoroughly for save transition to Itinerary Details page
+                time.sleep(3) # Wait thoroughly for save transition to Itinerary Details page
             else:
                 logger.error(f"  ❌ 'Add Activity' button disabled or missing for {act['name']}!")
                 pytest.fail(f"Failed to save activity: {act['name']}")
@@ -509,7 +509,7 @@ class TestCompleteItineraryCreation:
             if my_draft:
                 my_draft[0].click() # Click the topmost (newest) one
                 logger.info("  👉 Opened freshly saved Draft from Profile")
-                time.sleep(5)
+                time.sleep(3)
                 
                 # Perform Verification Assertions on the Draft Details
                 page_src = driver.page_source

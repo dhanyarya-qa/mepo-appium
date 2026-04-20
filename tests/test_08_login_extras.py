@@ -11,6 +11,7 @@ import pytest
 import time
 import logging
 from appium.webdriver.common.appiumby import AppiumBy
+from utils.wait_helpers import wait_find, XSLOW
 
 logger = logging.getLogger(__name__)
 
@@ -245,8 +246,8 @@ class TestRestoreLogin:
                 except Exception:
                     continue
             
-            time.sleep(10)
+            time.sleep(5)
             
-            welcome = driver.find_elements(AppiumBy.XPATH, "//*[contains(@content-desc, 'Welcome,')]")
+            welcome = wait_find(driver, "//*[contains(@content-desc, 'Welcome,')]", timeout=XSLOW)
             assert len(welcome) > 0, "Failed to restore login!"
             logger.info("✅ Login restored for subsequent tests")

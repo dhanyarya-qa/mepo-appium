@@ -194,7 +194,7 @@ class TestHomeSeeAllNavigation:
             pytest.skip("'See all' link not visible")
 
         see_all[0].click()
-        time.sleep(5)
+        time.sleep(3)
 
         # Should navigate to Open Trip page
         title = driver.find_elements(AppiumBy.XPATH,

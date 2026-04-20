@@ -86,7 +86,7 @@ def driver():
             command_executor=AppiumConfig.SERVER_URL,
             options=options,
         )
-        _driver.implicitly_wait(10)
+        _driver.implicitly_wait(5)
         logger.info(f"[OK] Appium driver started — session: {_driver.session_id}")
         logger.info(f"     Device: {caps.get('appium:deviceName')}")
         logger.info(f"     UDID: {caps.get('appium:udid')}")
