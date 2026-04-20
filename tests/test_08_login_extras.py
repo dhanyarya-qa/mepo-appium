@@ -208,4 +208,45 @@ class TestLoginScreenLanguage:
 
         enabled = login_btn[0].get_attribute("enabled")
         assert enabled == "false", f"Login button should be disabled, got enabled={enabled}"
-        logger.info("✅ Login button disabled when fields empty")
+        logger.info("✅ Login button is disabled when fields are empty")
+
+
+class TestRestoreLogin:
+    """Log back in to allow subsequent tests in sequence to run."""
+
+    def test_relogin_for_subsequent_tests(self, driver):
+        """Restore login session via valid credentials."""
+        logger.info("\n=== RESTORING LOGIN STATE ===")
+        
+        edits = driver.find_elements(AppiumBy.XPATH, "//android.widget.EditText")
+        if len(edits) >= 2:
+            edits[0].click()
+            edits[0].clear()
+            edits[0].send_keys("danip1@yopmail.com")
+            
+            # Hide keyboard
+            driver.tap([(540, 200)])
+            
+            edits[1].click()
+            edits[1].clear()
+            edits[1].send_keys("Sandi123!")
+            
+            driver.tap([(540, 200)])
+            
+            # Tap Login
+            for loc in [
+                (AppiumBy.ACCESSIBILITY_ID, "Login"),
+                (AppiumBy.XPATH, "//*[@content-desc='Login']"),
+                (AppiumBy.XPATH, "//*[contains(@content-desc, 'Login')]"),
+            ]:
+                try:
+                    driver.find_element(*loc).click()
+                    break
+                except Exception:
+                    continue
+            
+            time.sleep(10)
+            
+            welcome = driver.find_elements(AppiumBy.XPATH, "//*[contains(@content-desc, 'Welcome,')]")
+            assert len(welcome) > 0, "Failed to restore login!"
+            logger.info("✅ Login restored for subsequent tests")

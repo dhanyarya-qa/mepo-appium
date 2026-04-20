@@ -20,28 +20,41 @@ pytestmark = [pytest.mark.profile, pytest.mark.regression]
 
 
 def _go_home(driver):
-    """Go to home screen."""
+    """Go to home screen safely via Bottom Nav tab."""
     for _ in range(5):
-        welcome = driver.find_elements(AppiumBy.XPATH,
-            "//*[contains(@content-desc, 'Welcome,')]")
-        if welcome:
-            s = driver.get_window_size()
-            for _ in range(4):
-                driver.swipe(s['width']//2, int(s['height']*0.25),
-                            s['width']//2, int(s['height']*0.75), 600)
-                time.sleep(0.3)
+        home_tab = driver.find_elements(AppiumBy.XPATH,
+            "//*[contains(@content-desc, 'Home\nTab 1 of 4')]")
+        if home_tab:
+            home_tab[-1].click()
+            time.sleep(2)
             return True
-        driver.back()
+        try:
+            driver.press_keycode(4)
+        except Exception:
+            pass
         time.sleep(2)
     return False
 
 
 def _open_profile(driver):
-    """Navigate to profile page."""
+    """Navigate to profile page via Bottom Navigation Profile Tab."""
     _go_home(driver)
     time.sleep(1)
-    driver.tap([(978, 245)], 500)
-    time.sleep(5)
+
+    # Use semantic locator — never hardcode coordinates
+    profile_tab = driver.find_elements(AppiumBy.XPATH,
+        "//*[contains(@content-desc, 'Profile\nTab 4 of 4')]")
+    if not profile_tab:
+        profile_tab = driver.find_elements(AppiumBy.XPATH,
+            "//*[contains(@content-desc, 'Profile') and contains(@content-desc, 'Tab')]")
+    if profile_tab:
+        profile_tab[-1].click()
+        time.sleep(5)
+    else:
+        # Fallback: tap the profile icon by coordinate
+        driver.tap([(978, 245)], 500)
+        time.sleep(5)
+
     title = driver.find_elements(AppiumBy.XPATH,
         "//*[@content-desc='My Profile']")
     return len(title) > 0

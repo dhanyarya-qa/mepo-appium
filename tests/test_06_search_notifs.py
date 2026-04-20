@@ -19,18 +19,18 @@ pytestmark = [pytest.mark.search, pytest.mark.regression]
 
 
 def _go_home(driver):
-    """Navigate back to home and scroll to top."""
+    """Navigate back to home safely via Bottom Nav tab."""
     for _ in range(5):
-        welcome = driver.find_elements(AppiumBy.XPATH,
-            "//*[contains(@content-desc, 'Welcome,')]")
-        if welcome:
-            s = driver.get_window_size()
-            for _ in range(4):
-                driver.swipe(s['width']//2, int(s['height']*0.25),
-                            s['width']//2, int(s['height']*0.75), 600)
-                time.sleep(0.3)
+        home_tab = driver.find_elements(AppiumBy.XPATH,
+            "//*[contains(@content-desc, 'Home\nTab 1 of 4')]")
+        if home_tab:
+            home_tab[-1].click()
+            time.sleep(2)
             return True
-        driver.back()
+        try:
+            driver.press_keycode(4)
+        except Exception:
+            pass
         time.sleep(2)
     return False
 
@@ -48,8 +48,14 @@ class TestSearchExplore:
         _go_home(driver)
         time.sleep(1)
 
-        # From XML: search icon at bounds [690,201][805,289]
-        driver.tap([(747, 245)], 500)
+        # Use semantic locator for search icon (Explore/Search tab)
+        search_icon = driver.find_elements(AppiumBy.XPATH,
+            "//*[contains(@content-desc, 'Explore\nTab 2 of 4')] | //*[contains(@content-desc, 'Search\nTab')]")
+        if search_icon:
+            search_icon[-1].click()
+        else:
+            # Fallback to coordinate (search icon top-right area)
+            driver.tap([(747, 245)], 500)
         time.sleep(5)
 
         # Verify: page title "Explore Itinerary"
@@ -138,8 +144,14 @@ class TestNotifications:
         _go_home(driver)
         time.sleep(1)
 
-        # From XML: notification icon at bounds [805,201][921,289]
-        driver.tap([(863, 245)], 500)
+        # Use semantic locator for notification icon
+        notif_icon = driver.find_elements(AppiumBy.XPATH,
+            "//*[contains(@content-desc, 'Notification') and @clickable='true']")
+        if notif_icon:
+            notif_icon[0].click()
+        else:
+            # Fallback to coordinate (notification bell top-right)
+            driver.tap([(863, 245)], 500)
         time.sleep(5)
 
         # Verify: page title "Notification"

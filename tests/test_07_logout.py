@@ -19,18 +19,18 @@ pytestmark = [pytest.mark.logout, pytest.mark.regression]
 
 
 def _go_home(driver):
-    """Navigate to home screen."""
+    """Navigate to home screen safely via Bottom Nav tab."""
     for _ in range(5):
-        welcome = driver.find_elements(AppiumBy.XPATH,
-            "//*[contains(@content-desc, 'Welcome,')]")
-        if welcome:
-            s = driver.get_window_size()
-            for _ in range(4):
-                driver.swipe(s['width']//2, int(s['height']*0.25),
-                            s['width']//2, int(s['height']*0.75), 600)
-                time.sleep(0.3)
+        home_tab = driver.find_elements(AppiumBy.XPATH,
+            "//*[contains(@content-desc, 'Home\nTab 1 of 4')]")
+        if home_tab:
+            home_tab[-1].click()
+            time.sleep(2)
             return True
-        driver.back()
+        try:
+            driver.press_keycode(4)
+        except Exception:
+            pass
         time.sleep(2)
     return False
 
@@ -101,6 +101,8 @@ class TestLogout:
             "//*[contains(@content-desc, 'Yes') "
             "or contains(@content-desc, 'OK') "
             "or contains(@content-desc, 'Confirm') "
+            "or contains(@content-desc, 'Continue') "
+            "or contains(@content-desc, 'continue') "
             "or contains(@content-desc, 'Logout') "
             "or contains(@content-desc, 'Log Out')]")
 

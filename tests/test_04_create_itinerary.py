@@ -366,14 +366,27 @@ class TestCompleteItineraryCreation:
             logger.info(f"  ➕ Adding Activity {i+1}/5: {act['name']} ({act['category']})")
             
             # Click "Add New Activity" for the 1st one, else "Add more Activity"
-            if i == 0:
-                add_btn = driver.find_elements(AppiumBy.XPATH, "//*[@content-desc='Add New Activity']")
-            else:
-                add_btn = driver.find_elements(AppiumBy.XPATH, "//*[@content-desc='Add more Activity']")
+            add_btn = []
+            for _ in range(5):
+                if i == 0:
+                    add_btn = driver.find_elements(AppiumBy.XPATH, "//*[@content-desc='Add New Activity'] | //*[@content-desc='Add more Activity']")
+                else:
+                    add_btn = driver.find_elements(AppiumBy.XPATH, "//*[@content-desc='Add more Activity']")
+                
+                if add_btn:
+                    break
+                # Scroll down using UiAutomator if not found
+                try:
+                    driver.find_element(AppiumBy.ANDROID_UIAUTOMATOR, 'new UiScrollable(new UiSelector().scrollable(true)).scrollForward()')
+                except:
+                    pass
+                time.sleep(2)
                 
             if add_btn:
                 add_btn[-1].click()
                 time.sleep(3)
+            else:
+                pytest.fail(f"Could not find Add Activity button for {act['name']}! Are we stuck in the previous form?")
             
             # Find the 4 EditTexts (Name, Cost, Location, Notes)
             edit_texts = driver.find_elements(AppiumBy.XPATH, "//android.widget.EditText")
@@ -407,8 +420,11 @@ class TestCompleteItineraryCreation:
                 time.sleep(1)
                 edit_texts[3].clear()
                 edit_texts[3].send_keys(act["notes"])
-                try: driver.press_keycode(66)
-                except: pass
+                try: 
+                    driver.hide_keyboard()
+                    time.sleep(1)
+                except: 
+                    pass
                 time.sleep(1)
             else:
                 logger.error(f"  ❌ Not enough EditText fields found! Found: {len(edit_texts)}")
@@ -419,35 +435,104 @@ class TestCompleteItineraryCreation:
                 category_icon[0].click()
                 time.sleep(1)
                 
-            # Save Activity
-            save_act_btn = driver.find_elements(AppiumBy.XPATH, "//*[@content-desc='Add Activity']")
+            # Save Activity (Explicitly look for the Button to avoid tapping the Top Bar Title)
+            save_act_btn = driver.find_elements(AppiumBy.XPATH, "//android.widget.Button[@content-desc='Add Activity']")
             if save_act_btn and save_act_btn[-1].is_enabled():
                 save_act_btn[-1].click()
                 logger.info(f"  ✅ '{act['name']}' Saved successfully.")
-                time.sleep(5) # Wait thoroughly for save transition
+                time.sleep(5) # Wait thoroughly for save transition to Itinerary Details page
             else:
                 logger.error(f"  ❌ 'Add Activity' button disabled or missing for {act['name']}!")
+                pytest.fail(f"Failed to save activity: {act['name']}")
                 
-        # After adding all 5 activities, attempt to Upload Itinerary
-        upload_btn = driver.find_elements(AppiumBy.XPATH, "//*[@content-desc='Upload Itinerary']")
-        if upload_btn and upload_btn[-1].is_enabled():
-            upload_btn[-1].click()
-            logger.info("✅ Upload Itinerary button clicked.")
-            time.sleep(10)
-            
-            success_done = driver.find_elements(AppiumBy.XPATH, "//*[@content-desc='Done']")
-            if success_done:
-                logger.info("✅ Found Done button on Success Modal, dismissing.")
-                success_done[-1].click()
+        # After adding all 5 activities, explicit instruction mapping (Option B)
+        # DO NOT click 'Upload Itinerary'. Save directly to Draft.
+        logger.info("  🏃 Skipping Upload, proceeding to Save Draft")
+        
+        save_draft = driver.find_elements(AppiumBy.XPATH, "//*[@content-desc='Save Draft']")
+        if not save_draft:
+            logger.info("  👉 Scrolling down to find Save Draft button...")
+            try:
+                driver.find_element(AppiumBy.ANDROID_UIAUTOMATOR, 'new UiScrollable(new UiSelector().scrollable(true)).scrollToEnd(3)')
                 time.sleep(2)
-        else:
-            logger.error("Upload Itinerary disabled or not found! Falling back to Save Draft.")
-            with open("error_upload_disabled.xml", "w", encoding="utf-8") as f:
-                f.write(driver.page_source)
+            except:
+                pass
             save_draft = driver.find_elements(AppiumBy.XPATH, "//*[@content-desc='Save Draft']")
-            if save_draft:
-                save_draft[-1].click()
-                logger.info("✅ Draft Saved Successfully to User Profile.")
+
+        if save_draft:
+            save_draft[-1].click()
+            logger.info("  👉 Clicked Save Draft on Itinerary Details")
+            time.sleep(4)
+            
+            # Modal appears, confirm by clicking "Save Draft" again
+            modal_save = driver.find_elements(AppiumBy.XPATH, "//*[@content-desc='Save Draft']")
+            if modal_save:
+                modal_save[-1].click()
+                logger.info("  👉 Clicked Save Draft on Confirmation Modal")
+                time.sleep(7)
+            else:
+                logger.warning("  ⚠️ Could not find Save Draft on modal.")
+        else:
+             logger.error("  ❌ Could not find Save Draft on details page!")
                 
-        time.sleep(5)
+        # Navigate to Profile and Verify
+        logger.info("  🏃 Navigating to Profile to verify Draft")
+        
+        # Click back safely until we reach the Home/Bottom Navigation screen
+        profile_tab = None
+        for _ in range(5):
+            found = driver.find_elements(AppiumBy.XPATH, "//*[contains(@content-desc, 'Profile\nTab')] | //*[@content-desc='Profile\nTab 4 of 4'] | //*[contains(@content-desc, 'Profile') and @clickable='true']")
+            if found:
+                profile_tab = found
+                break
+            try: driver.press_keycode(4)
+            except: pass
+            time.sleep(2)
+            
+        if profile_tab:
+            profile_tab[-1].click()
+            logger.info("  👉 Entered Profile Tab")
+            time.sleep(3)
+            
+            # Explicitly tap the "Draft" filter tab first
+            draft_filter = driver.find_elements(AppiumBy.XPATH, "//*[@content-desc='Draft']")
+            if draft_filter:
+                draft_filter[-1].click()
+                logger.info("  👉 Clicked 'Draft' filter tab")
+                time.sleep(3)
+                
+            # Scroll down to refresh or render the list if needed
+            try: driver.find_element(AppiumBy.ANDROID_UIAUTOMATOR, 'new UiScrollable(new UiSelector().scrollable(true)).scrollForward()')
+            except: pass
+            
+            my_draft = driver.find_elements(AppiumBy.XPATH, "//*[contains(@content-desc, 'Automation Travel Plan')]")
+            if my_draft:
+                my_draft[0].click() # Click the topmost (newest) one
+                logger.info("  👉 Opened freshly saved Draft from Profile")
+                time.sleep(5)
+                
+                # Perform Verification Assertions on the Draft Details
+                page_src = driver.page_source
+                assert "Flight to Bali" in page_src, "Transport activity missing"
+                assert "Bali Safari Marine Park" in page_src, "Destination activity missing"
+                assert "Ayana Resort" in page_src, "Accommodation activity missing"
+                assert "Bebek Tepi Sawah" in page_src, "Culinary activity missing"
+                assert "Buy Souvenirs" in page_src, "Others activity missing"
+                
+                logger.info("  ✅ Verified: All 5 Activities are successfully listed inside the Profile Draft!")
+                
+                # Navigate back to Home Tab to finish nicely
+                logger.info("  🏃 Returning to Home Tab")
+                try: driver.press_keycode(4) # Back out of Draft Details
+                except: pass
+                time.sleep(2)
+                home_tab = driver.find_elements(AppiumBy.XPATH, "//*[@content-desc='Home\nTab 1 of 4']")
+                if home_tab: home_tab[-1].click()
+                time.sleep(2)
+                
+            else:
+                logger.error("  ❌ Could not find the saved draft in Profile.")
+                assert False, "Draft not found in profile"
+        else:
+             logger.error("  ❌ Profile Tab not found after backing out.")
 

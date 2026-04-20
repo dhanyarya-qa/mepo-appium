@@ -18,32 +18,41 @@ pytestmark = [pytest.mark.profile, pytest.mark.regression]
 
 
 def _go_home(driver):
-    """Navigate back to home screen."""
+    """Navigate to home screen safely via Bottom Nav tab."""
     for _ in range(5):
-        welcome = driver.find_elements(AppiumBy.XPATH,
-            "//*[contains(@content-desc, 'Welcome,')]")
-        if welcome:
-            # Scroll to top
-            s = driver.get_window_size()
-            for _ in range(4):
-                driver.swipe(s['width']//2, int(s['height']*0.25),
-                            s['width']//2, int(s['height']*0.75), 600)
-                time.sleep(0.3)
+        home_tab = driver.find_elements(AppiumBy.XPATH,
+            "//*[contains(@content-desc, 'Home\nTab 1 of 4')]")
+        if home_tab:
+            home_tab[-1].click()
+            time.sleep(2)
             return True
-        driver.back()
+        try:
+            driver.press_keycode(4)
+        except Exception:
+            pass
         time.sleep(2)
     return False
 
 
 def _navigate_to_profile(driver):
-    """Navigate to profile by tapping the profile icon (top-right)."""
+    """Navigate to profile via Bottom Navigation Profile Tab."""
+    # First go home to ensure bottom nav is visible
     _go_home(driver)
     time.sleep(1)
 
-    # From XML: profile icon at bounds [921,201][1036,289]
-    # It's the 3rd clickable View with no content-desc in the header area
-    driver.tap([(978, 245)], 500)
-    time.sleep(5)
+    # Use semantic locator for Profile Tab — never hardcode coordinates
+    profile_tab = driver.find_elements(AppiumBy.XPATH,
+        "//*[contains(@content-desc, 'Profile\nTab 4 of 4')]")
+    if not profile_tab:
+        profile_tab = driver.find_elements(AppiumBy.XPATH,
+            "//*[contains(@content-desc, 'Profile') and contains(@content-desc, 'Tab')]")
+    if profile_tab:
+        profile_tab[-1].click()
+        time.sleep(5)
+    else:
+        # Fallback: tap the top-right profile icon
+        driver.tap([(978, 245)], 500)
+        time.sleep(5)
 
     # Verify profile page loaded
     title = driver.find_elements(AppiumBy.XPATH,

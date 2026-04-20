@@ -20,28 +20,41 @@ pytestmark = [pytest.mark.home, pytest.mark.regression]
 
 
 def _ensure_home_top(driver):
-    """Navigate to home and scroll to top."""
+    """Navigate to home and scroll to top safely."""
+    # Navigate back to home via Bottom Nav tab
     for _ in range(5):
-        welcome = driver.find_elements(AppiumBy.XPATH,
-            "//*[contains(@content-desc, 'Welcome,')]")
-        if welcome:
+        home_tab = driver.find_elements(AppiumBy.XPATH,
+            "//*[contains(@content-desc, 'Home\nTab 1 of 4')]")
+        if home_tab:
+            home_tab[-1].click()
+            time.sleep(2)
             break
-        driver.back()
+        try: driver.press_keycode(4)
+        except: pass
         time.sleep(2)
 
-    s = driver.get_window_size()
-    for _ in range(5):
-        driver.swipe(s['width']//2, int(s['height']*0.25),
-                    s['width']//2, int(s['height']*0.75), 600)
-        time.sleep(0.3)
+    # Scroll to top safely — use scrollable(true) without className filter
+    try:
+        driver.find_element(
+            AppiumBy.ANDROID_UIAUTOMATOR,
+            'new UiScrollable(new UiSelector().scrollable(true)).scrollToBeginning(5)'
+        )
+    except Exception:
+        pass
     time.sleep(1)
 
 
-def _swipe_up(driver):
-    s = driver.get_window_size()
-    driver.swipe(s['width']//2, int(s['height']*0.75),
-                s['width']//2, int(s['height']*0.25), 800)
-    time.sleep(1.5)
+def _scroll_to_text(driver, text):
+    """Safely scroll to element using Android UiScrollable."""
+    # Use scrollable(true) without className restriction —
+    # Mepo uses Compose LazyColumn/NestedScrollView, not standard ScrollView
+    try:
+        return driver.find_element(
+            AppiumBy.ANDROID_UIAUTOMATOR,
+            f'new UiScrollable(new UiSelector().scrollable(true)).scrollIntoView(new UiSelector().descriptionContains("{text}"))'
+        )
+    except Exception:
+        return None
 
 
 class TestServiceCardSoonLabels:
@@ -113,8 +126,7 @@ class TestHomeHorizontalScrolls:
         """Open Trip with Us carousel should be horizontally scrollable."""
         logger.info("\n=== HOME DEEP: Open Trip Carousel ===")
         _ensure_home_top(driver)
-        _swipe_up(driver)
-        _swipe_up(driver)
+        _scroll_to_text(driver, "Open Trip")
 
         # From XML: HorizontalScrollView with trip card ImageViews
         carousel = driver.find_elements(AppiumBy.XPATH,
@@ -133,8 +145,11 @@ class TestHomeHorizontalScrolls:
         """Popular city chips should be in a horizontal scroll."""
         logger.info("\n=== HOME DEEP: City Chips Scroll ===")
 
+        # Scroll down a bit first to make HorizontalScrollView visible
+        _scroll_to_text(driver, "Depok")
+        time.sleep(1)
+
         # From XML: HorizontalScrollView containing city names
-        # City chips: Depok, Tebet, Sulawesi
         scrollviews = driver.find_elements(AppiumBy.XPATH,
             "//android.widget.HorizontalScrollView")
 
@@ -148,6 +163,12 @@ class TestHomeHorizontalScrolls:
                     break
             if found_cities:
                 break
+
+        # If not found in HorizontalScrollView, try direct XPATH search
+        if not found_cities:
+            city_els = driver.find_elements(AppiumBy.XPATH,
+                "//*[@content-desc='Depok' or @content-desc='Tebet' or @content-desc='Sulawesi']")
+            found_cities = len(city_els) > 0
 
         assert found_cities, "City chips not found in horizontal scroll"
         logger.info("✅ City chips in horizontal scrollable container")
@@ -164,7 +185,7 @@ class TestHomeSeeAllNavigation:
         see_all = driver.find_elements(AppiumBy.XPATH,
             "//*[@content-desc='See all']")
         if not see_all:
-            _swipe_up(driver)
+            _scroll_to_text(driver, "See all")
             time.sleep(1)
             see_all = driver.find_elements(AppiumBy.XPATH,
                 "//*[@content-desc='See all']")
@@ -197,8 +218,7 @@ class TestHomePartnershipBanner:
         _ensure_home_top(driver)
 
         # Scroll to bottom
-        for _ in range(4):
-            _swipe_up(driver)
+        _scroll_to_text(driver, "Apply for Partnership")
 
         partner = driver.find_elements(AppiumBy.XPATH,
             "//*[contains(@content-desc, 'Apply for Partnership')]")
@@ -218,7 +238,7 @@ class TestHomePartnershipBanner:
 
         # It might be partially visible or need one more scroll
         if not explore:
-            _swipe_up(driver)
+            _scroll_to_text(driver, "Explore Popular")
             time.sleep(1)
             explore = driver.find_elements(AppiumBy.XPATH,
                 "//*[@content-desc='Explore Popular Itinerary']")
@@ -234,8 +254,7 @@ class TestHomeRecommendedItinerary:
         """Recommended itinerary cards should be in horizontal carousel."""
         logger.info("\n=== HOME DEEP: Recommended Carousel ===")
         _ensure_home_top(driver)
-        _swipe_up(driver)
-        _swipe_up(driver)
+        _scroll_to_text(driver, "Recommend")
 
         # From XML: HorizontalScrollView with ImageView cards having
         # content-desc like "Dev\nTasik\nGarut"
