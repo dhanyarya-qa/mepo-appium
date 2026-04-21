@@ -225,8 +225,13 @@ class TestHomeSeeAllNavigation:
         assert len(title) > 0 or len(all_filter) > 0, "Not on Open Trip page"
         logger.info("✅ 'See all' navigated to Open Trip page")
 
-        # Go back
-        driver.back()
+        # Go back to Home via Bottom Nav (driver.back() can exit the app!)
+        home_tab = driver.find_elements(AppiumBy.XPATH,
+            "//*[contains(@content-desc, 'Home\nTab 1 of 4')]")
+        if home_tab:
+            home_tab[-1].click()
+        else:
+            driver.back()
         time.sleep(3)
 
 
