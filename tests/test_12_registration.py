@@ -212,6 +212,13 @@ class TestRegistration:
         logger.info(f"  ✅ Display: {_test_state['display']}")
         logger.info(f"  ✅ User   : {_test_state['username']}")
 
+        # Save to shared file so test_13 can reuse this email
+        import json, os
+        shared_path = os.path.join(os.path.dirname(__file__), "..", "reports", "shared_email.json")
+        with open(shared_path, "w") as f:
+            json.dump({"email": email, "token": token, "password": PASSWORD, "mailtm_pass": MAILTM_PASS}, f)
+        logger.info(f"  💾 Saved email to shared_email.json for test_13")
+
     def test_02_navigate_to_register(self, driver):
         """From Login screen, tap 'Register' to open Registration form."""
         logger.info("\n=== REGISTRATION: Step 2 — Navigate to Register ===")
