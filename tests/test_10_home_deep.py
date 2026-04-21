@@ -22,18 +22,39 @@ pytestmark = [pytest.mark.home, pytest.mark.regression]
 def _ensure_home_top(driver):
     """Navigate to home and scroll to top safely."""
     # Navigate back to home via Bottom Nav tab
-    for _ in range(5):
+    for attempt in range(5):
         home_tab = driver.find_elements(AppiumBy.XPATH,
             "//*[contains(@content-desc, 'Home\nTab 1 of 4')]")
         if home_tab:
             home_tab[-1].click()
             time.sleep(2)
             break
-        try: driver.press_keycode(4)
-        except: pass
+
+        # Already on Home?
+        welcome = driver.find_elements(AppiumBy.XPATH,
+            "//*[contains(@content-desc, 'Welcome,')]")
+        if welcome:
+            logger.info("  ✅ Already on Home Screen")
+            break
+
+        logger.info(f"  ← Back press {attempt+1}/5 to find Home")
+        try:
+            driver.press_keycode(4)
+        except Exception:
+            pass
         time.sleep(2)
 
-    # Scroll to top safely — use scrollable(true) without className filter
+        # Check if we accidentally exited the app
+        try:
+            current = driver.current_package
+            if current != "com.mepo":
+                logger.warning(f"  ⚠ Left Mepo ({current}), re-activating...")
+                driver.activate_app("com.mepo")
+                time.sleep(3)
+        except Exception:
+            pass
+
+    # Scroll to top safely
     try:
         driver.find_element(
             AppiumBy.ANDROID_UIAUTOMATOR,
