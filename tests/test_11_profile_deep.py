@@ -261,19 +261,93 @@ class TestProfileScrolling:
         
     def test_navigate_back_to_home(self, driver):
         """Going back from profile should return to home."""
-        buttons = driver.find_elements(AppiumBy.XPATH,
-            "//android.widget.Button[@clickable='true']")
-        if buttons:
-            buttons[0].click()
+        # Use Bottom Nav Home Tab instead of blind back press
+        home_tab = driver.find_elements(AppiumBy.XPATH,
+            "//*[contains(@content-desc, 'Home\nTab 1 of 4')]")
+        if home_tab:
+            home_tab[-1].click()
             time.sleep(3)
+        else:
+            buttons = driver.find_elements(AppiumBy.XPATH,
+                "//android.widget.Button[@clickable='true']")
+            if buttons:
+                buttons[0].click()
+                time.sleep(3)
 
         welcome = driver.find_elements(AppiumBy.XPATH,
             "//*[contains(@content-desc, 'Welcome,')]")
-        if not welcome:
-            driver.back()
-            time.sleep(2)
-            welcome = driver.find_elements(AppiumBy.XPATH,
-                "//*[contains(@content-desc, 'Welcome,')]")
-
         assert len(welcome) > 0, "Not back on home"
         logger.info("✅ Back on home from profile")
+
+    def test_logout_for_next_tests(self, driver):
+        """Logout so test_12 (registration) can start from login screen."""
+        logger.info("\n=== PROFILE DEEP: Logout for next tests ===")
+
+        # 1. Navigate to Profile via Bottom Nav
+        profile_tab = driver.find_elements(AppiumBy.XPATH,
+            "//*[contains(@content-desc, 'Profile\nTab 4 of 4')]")
+        if not profile_tab:
+            profile_tab = driver.find_elements(AppiumBy.XPATH,
+                "//*[contains(@content-desc, 'Profile') and contains(@content-desc, 'Tab')]")
+        if profile_tab:
+            profile_tab[-1].click()
+            time.sleep(3)
+            logger.info("  👉 Opened Profile")
+        else:
+            # Fallback: tap profile icon
+            driver.tap([(978, 245)], 500)
+            time.sleep(3)
+
+        # 2. Open Settings (last button in header)
+        buttons = driver.find_elements(AppiumBy.XPATH,
+            "//android.widget.Button[@clickable='true']")
+        if len(buttons) >= 2:
+            buttons[-1].click()
+            time.sleep(2)
+            logger.info("  👉 Opened Settings")
+
+        # 3. Find and tap Logout
+        s = driver.get_window_size()
+        for attempt in range(5):
+            logout_el = driver.find_elements(AppiumBy.XPATH,
+                "//*[contains(@content-desc, 'Logout') "
+                "or contains(@content-desc, 'Log Out') "
+                "or contains(@content-desc, 'Sign Out') "
+                "or contains(@content-desc, 'Log out')]")
+            if logout_el:
+                logout_el[0].click()
+                time.sleep(2)
+                logger.info("  👉 Tapped Logout")
+                break
+            # Scroll down
+            driver.swipe(s['width']//2, int(s['height']*0.75),
+                        s['width']//2, int(s['height']*0.25), 800)
+            time.sleep(1)
+
+        # 4. Confirm logout dialog
+        confirm = driver.find_elements(AppiumBy.XPATH,
+            "//*[contains(@content-desc, 'Yes') "
+            "or contains(@content-desc, 'OK') "
+            "or contains(@content-desc, 'Confirm') "
+            "or contains(@content-desc, 'Continue') "
+            "or contains(@content-desc, 'Logout') "
+            "or contains(@content-desc, 'Log Out')]")
+        if confirm:
+            confirm[0].click()
+            time.sleep(3)
+            logger.info("  👉 Confirmed Logout")
+
+        # 5. Verify login screen
+        time.sleep(2)
+        login_indicators = [
+            driver.find_elements(AppiumBy.XPATH,
+                "//*[contains(@content-desc, 'Welcome Back')]"),
+            driver.find_elements(AppiumBy.XPATH,
+                "//android.widget.EditText"),
+            driver.find_elements(AppiumBy.XPATH,
+                "//*[@content-desc='Login']"),
+        ]
+        found = any(len(ind) > 0 for ind in login_indicators)
+        assert found, "Login screen not detected after logout"
+        logger.info("✅ LOGOUT SUCCESSFUL — Ready for test_12 registration!")
+
