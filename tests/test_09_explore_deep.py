@@ -20,18 +20,40 @@ pytestmark = [pytest.mark.search, pytest.mark.regression]
 
 def _go_home(driver):
     """Navigate to home screen safely via Bottom Nav tab."""
-    for _ in range(5):
+    for attempt in range(5):
+        # 1. Check for Bottom Nav Home Tab
         home_tab = driver.find_elements(AppiumBy.XPATH,
             "//*[contains(@content-desc, 'Home\nTab 1 of 4')]")
         if home_tab:
             home_tab[-1].click()
             time.sleep(2)
             return True
+
+        # 2. Already on Home? (Welcome text visible)
+        welcome = driver.find_elements(AppiumBy.XPATH,
+            "//*[contains(@content-desc, 'Welcome,')]")
+        if welcome:
+            logger.info("  Already on Home Screen")
+            return True
+
+        # 3. Press back to get closer to Home
+        logger.info(f"  Back press {attempt+1}/5 to find Home")
         try:
             driver.press_keycode(4)
         except Exception:
             pass
         time.sleep(2)
+
+        # 4. Check if we accidentally exited the app
+        try:
+            current = driver.current_package
+            if current != "com.mepo":
+                logger.warning(f"  Left Mepo ({current}), re-activating...")
+                driver.activate_app("com.mepo")
+                time.sleep(3)
+        except Exception:
+            pass
+
     return False
 
 

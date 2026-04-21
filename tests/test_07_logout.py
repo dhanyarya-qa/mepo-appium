@@ -21,18 +21,40 @@ pytestmark = [pytest.mark.logout, pytest.mark.regression]
 
 def _go_home(driver):
     """Navigate to home screen safely via Bottom Nav tab."""
-    for _ in range(5):
+    for attempt in range(5):
+        # 1. Check for Bottom Nav Home Tab
         home_tab = driver.find_elements(AppiumBy.XPATH,
             "//*[contains(@content-desc, 'Home\nTab 1 of 4')]")
         if home_tab:
             home_tab[-1].click()
             time.sleep(2)
             return True
+
+        # 2. Already on Home? (Welcome text visible)
+        welcome = driver.find_elements(AppiumBy.XPATH,
+            "//*[contains(@content-desc, 'Welcome,')]")
+        if welcome:
+            logger.info("  Already on Home Screen")
+            return True
+
+        # 3. Press back to get closer to Home
+        logger.info(f"  Back press {attempt+1}/5 to find Home")
         try:
             driver.press_keycode(4)
         except Exception:
             pass
         time.sleep(2)
+
+        # 4. Check if we accidentally exited the app
+        try:
+            current = driver.current_package
+            if current != "com.mepo":
+                logger.warning(f"  Left Mepo ({current}), re-activating...")
+                driver.activate_app("com.mepo")
+                time.sleep(3)
+        except Exception:
+            pass
+
     return False
 
 
@@ -46,9 +68,20 @@ class TestLogout:
         assert _go_home(driver), "Cannot reach home screen"
         time.sleep(1)
 
-        # Tap profile icon (top-right) — bounds [921,201][1036,289]
-        driver.tap([(978, 245)], 500)
-        time.sleep(3)
+        # Use Bottom Nav Profile Tab (semantic locator, not coordinates)
+        profile_tab = driver.find_elements(AppiumBy.XPATH,
+            "//*[contains(@content-desc, 'Profile\nTab 4 of 4')]")
+        if not profile_tab:
+            profile_tab = driver.find_elements(AppiumBy.XPATH,
+                "//*[contains(@content-desc, 'Profile') and contains(@content-desc, 'Tab')]")
+
+        if profile_tab:
+            profile_tab[-1].click()
+            time.sleep(3)
+        else:
+            # Fallback: tap profile icon (top-right)
+            driver.tap([(978, 245)], 500)
+            time.sleep(3)
 
         title = driver.find_elements(AppiumBy.XPATH,
             "//*[@content-desc='My Profile']")
