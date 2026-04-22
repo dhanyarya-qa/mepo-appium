@@ -9,8 +9,7 @@
 [![Pytest](https://img.shields.io/badge/Pytest-0A9EDC?style=flat-square&logo=pytest&logoColor=white)](https://pytest.org/)
 [![Android](https://img.shields.io/badge/Android_15-3DDC84?style=flat-square&logo=android&logoColor=white)](https://developer.android.com/)
 
-*Production-ready E2E mobile automation for the Mepo Travel Android app on a real Xiaomi device — featuring 115+ test cases across 15 test files, sequential pipeline execution, automated OTP verification via mail.tm API, smart WebDriverWait performance optimization, and rich failure diagnostics with video recording.*
-
+*Production-ready E2E mobile automation for the Mepo Travel Android app on a real Xiaomi device — featuring 100+ test cases across 14 test files, sequential pipeline execution, automated OTP verification via mail.tm API, smart WebDriverWait performance optimization, and rich failure diagnostics with video recording.*
 </div>
 
 ---
@@ -31,7 +30,7 @@
 - 🚪 **Logout & Re-login** — Full cycle with session restoration
 - 📝 **Registration** — Automated with mail.tm OTP + login verify
 - 🔑 **Forgot Password** — Screen validation & form elements
-- 💳 **Booking Checkout** — End-to-end trip booking flow
+- 🔄 **Login Again** — Verifying persistent login across sessions
 
 </td>
 <td width="50%">
@@ -79,7 +78,6 @@ mepo-appium/
 │   ├── test_02_home_banners.py      # Home layout & banners (10 tests)
 │   ├── test_03_open_trip.py         # Open Trip navigation (6 tests)
 │   ├── test_04_create_itinerary.py  # Create Itinerary full CRUD (11 tests)
-│   ├── test_04b_manage_itinerary.py # Cleanup auto-test itineraries (2 tests)
 │   ├── test_05_profile.py           # Profile page layout & tabs (10 tests)
 │   ├── test_06_search_notifs.py     # Search & Notification flow (8 tests)
 │   ├── test_07_logout.py            # Logout flow (5 tests)
@@ -89,8 +87,7 @@ mepo-appium/
 │   ├── test_11_profile_deep.py      # Profile deep interactions (10 tests)
 │   ├── test_12_registration.py      # Registration + OTP + login verify (7 tests)
 │   ├── test_13_forgot_password.py   # Forgot Password validation (4 tests)
-│   ├── test_14_booking_checkout.py  # Open Trip booking checkout (1 test)
-│   └── test_advanced_features.py    # API-driven Open Trip & Budget
+│   └── test_14_login_again.py       # Login again using shared email (1 test)
 ├── utils/
 │   ├── __init__.py
 │   ├── api_helper.py               # REST API client for preconditions
@@ -150,7 +147,7 @@ adb devices
 ### Sequential Full Suite (Recommended)
 
 ```bash
-python -m pytest tests/test_01_login.py tests/test_02_home_banners.py tests/test_03_open_trip.py tests/test_04_create_itinerary.py tests/test_04b_manage_itinerary.py tests/test_05_profile.py tests/test_06_search_notifs.py tests/test_07_logout.py tests/test_08_login_extras.py tests/test_09_explore_deep.py tests/test_10_home_deep.py tests/test_11_profile_deep.py tests/test_12_registration.py tests/test_13_forgot_password.py tests/test_14_booking_checkout.py -v -s
+python -m pytest tests/test_01_login.py tests/test_02_home_banners.py tests/test_03_open_trip.py tests/test_04_create_itinerary.py tests/test_05_profile.py tests/test_06_search_notifs.py tests/test_07_logout.py tests/test_08_login_extras.py tests/test_09_explore_deep.py tests/test_10_home_deep.py tests/test_11_profile_deep.py tests/test_12_registration.py tests/test_13_forgot_password.py tests/test_14_login_again.py -v -s
 ```
 
 ### Individual Test Files
@@ -160,7 +157,6 @@ python -m pytest tests/test_01_login.py -v -s              # Login scenarios
 python -m pytest tests/test_02_home_banners.py -v -s        # Home screen features
 python -m pytest tests/test_03_open_trip.py -v -s           # Open Trip discovery
 python -m pytest tests/test_04_create_itinerary.py -v -s    # Create Itinerary CRUD
-python -m pytest tests/test_04b_manage_itinerary.py -v -s   # Cleanup test itineraries
 python -m pytest tests/test_05_profile.py -v -s             # Profile management
 python -m pytest tests/test_06_search_notifs.py -v -s       # Search & Notifications
 python -m pytest tests/test_07_logout.py -v -s              # Logout flow
@@ -170,7 +166,7 @@ python -m pytest tests/test_10_home_deep.py -v -s           # Home deep interact
 python -m pytest tests/test_11_profile_deep.py -v -s        # Profile deep interactions
 python -m pytest tests/test_12_registration.py -v -s        # Registration + OTP
 python -m pytest tests/test_13_forgot_password.py -v -s     # Forgot Password
-python -m pytest tests/test_14_booking_checkout.py -v -s    # Booking checkout
+python -m pytest tests/test_14_login_again.py -v -s         # Login again with shared email
 ```
 
 ### Run by Marker
@@ -253,10 +249,6 @@ Navigate via card, trip cards listing, trip detail, Custom Trip section, itinera
 
 Modal open, form fields, save disabled by default, empty submit blocked, title-only blocked, fill & save, cancel dismisses, full E2E with 5 activities, verify draft in profile.
 
-### Test 04b — Manage Itinerary 🗑️ (2 tests)
-
-Navigate to profile, auto-delete `[Auto-Test]` itineraries.
-
 ### Test 05 — Profile 👤 (10 tests)
 
 Navigate via Bottom Nav, username/handle display, My Itinerary tab, Saved tab, filters (Activity/Shared/Draft), itinerary cards.
@@ -303,9 +295,9 @@ Itinerary card detail, filter chip interactions (Shared/Draft/Activity), Saved I
 
 Navigate to forgot page, form elements, send OTP disabled, return to login.
 
-### Test 14 — Booking Checkout 💳 (1 test)
+### Test 14 — Login Again 🔄 (1 test)
 
-Full trip booking flow from Open Trip → Book → Checkout → Invoice.
+Login using shared email from Test 12/13 and confirm Home screen.
 
 ---
 
@@ -356,8 +348,8 @@ VALID_PASSWORD = "Sandi123!"
 ┌──────────────────────────────────────────────────────────┐
 │              TEST COVERAGE REPORT                        │
 ├──────────────────────────────────────────────────────────┤
-│  Test Files          : 15 files (+1 advanced)            │
-│  Total Test Cases    : 115+ scenarios                    │
+│  Test Files          : 14 files                          │
+│  Total Test Cases    : 100+ scenarios                    │
 │  Positive Tests      : 85+                               │
 │  Negative Tests      : 15+                               │
 │  Page Objects        : 7 (+ 1 base)                      │
@@ -368,7 +360,6 @@ VALID_PASSWORD = "Sandi123!"
 │    ✅ Banner Carousel (swipe + indicators)               │
 │    ✅ Open Trip Discovery & Detail                       │
 │    ✅ Create Itinerary (full CRUD + 5 activities)        │
-│    ✅ Itinerary Cleanup (auto-delete test data)          │
 │    ✅ Profile Management (tabs, filters, deep)           │
 │    ✅ Search & Notifications                             │
 │    ✅ Logout & Session Restoration                       │
@@ -377,8 +368,7 @@ VALID_PASSWORD = "Sandi123!"
 │    ✅ Home Deep Scroll & Carousels                       │
 │    ✅ Registration + mail.tm OTP + Login Verify          │
 │    ✅ Forgot Password Flow                               │
-│    ✅ Booking Checkout (E2E)                             │
-│    ✅ Budget Tracking (API-driven)                       │
+│    ✅ Login Again (Persistent Login)                     │
 ├──────────────────────────────────────────────────────────┤
 │  EXECUTION : Real Device (Xiaomi Redmi Note 13, API 35) │
 │  CONNECTION: Wireless ADB                                │
