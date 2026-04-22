@@ -348,8 +348,10 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
     # ── Custom Code for Spreadsheet Dump ──
     spreadsheet_path = os.path.join(LOG_DIR, "..", f"Test_Results_Spreadsheet_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv")
     try:
-        with open(spreadsheet_path, mode='w', newline='', encoding='utf-8') as f:
-            writer = csv.writer(f)
+        # Use utf-8-sig to add BOM so Excel recognizes characters properly
+        with open(spreadsheet_path, mode='w', newline='', encoding='utf-8-sig') as f:
+            # Use semicolon delimiter which is the default for Excel in Indonesia/Europe
+            writer = csv.writer(f, delimiter=';')
             writer.writerow(["Test Name", "Status", "Duration (s)", "Error Details"])
             
             for k, v in terminalreporter.stats.items():
@@ -360,10 +362,12 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
                         duration = getattr(test, 'duration', 0.0)
                         error = ""
                         if hasattr(test, 'longrepr') and test.longrepr:
+                            # Clean up the error string to avoid breaking CSV rows in Excel
                             lines = str(test.longrepr).strip().split('\n')
                             error = lines[-1].strip() if lines else ""
+                            error = error.replace(';', ',').replace('\n', ' | ')
                         writer.writerow([name, status, f"{duration:.2f}", error])
-        _safe_print(f"  [SPREADSHEET] Laporan Google Sheets-ready tersimpan di: \n  => {os.path.abspath(spreadsheet_path)}")
+        _safe_print(f"  [SPREADSHEET] Laporan Excel-ready (CSV) tersimpan di: \n  => {os.path.abspath(spreadsheet_path)}")
         _safe_print("=" * 70)
     except Exception as e:
         _safe_print(f"  [WARN] Failed to write Spreadsheet report: {e}")
