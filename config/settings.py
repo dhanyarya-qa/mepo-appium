@@ -21,7 +21,12 @@ class AppiumConfig:
         "appium:automationName": "UiAutomator2",
         "appium:deviceName": os.getenv("ANDROID_DEVICE_NAME", "23124RA7EO"),
         "appium:platformVersion": os.getenv("ANDROID_PLATFORM_VERSION", "15"),
-        "appium:udid": os.getenv("ANDROID_UDID", "192.168.1.62:39289"),
+        "appium:udid": os.getenv("ANDROID_UDID", "192.168.1.62:40605"),
+        # Explicit SDK path so Appium doesn't rely on ANDROID_HOME env var
+        "appium:androidSdkRoot": os.getenv(
+            "ANDROID_HOME",
+            os.path.join(os.environ.get("LOCALAPPDATA", "C:\\Users\\dhany\\AppData\\Local"), "Android", "Sdk")
+        ),
         # No "appium:app" — app is pre-installed via Firebase App Tester
         "appium:appPackage": "com.mepo",
         "appium:appActivity": "com.mepo.MainActivity",
@@ -33,8 +38,9 @@ class AppiumConfig:
         "appium:disableWindowAnimation": True,
         "appium:ignoreUnimportantViews": True,
         "appium:dontStopAppOnReset": False,
-        "appium:forceAppLaunch": True,     # Force restart app  
+        "appium:forceAppLaunch": True,     # Force restart app
         "appium:appWaitDuration": 30000,   # Wait up to 30s for Flutter app
+        "appium:adbExecTimeout": 60000,    # 60s ADB timeout for wireless connection
     }
 
 

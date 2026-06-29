@@ -60,10 +60,10 @@ class HomePage(BasePage):
             self.GREETING_TEXT, self.GREETING_DESC,
             self.CARD_OPEN_TRIP, self.TAB_OPEN_TRIP,
         ]
-        for ind in indicators:
-            if self.is_element_present(ind, timeout=timeout):
-                logger.info(f"🏠 Home screen loaded — detected: {ind}")
-                return True
+        matched = self.wait_for_any_locator(indicators, timeout=timeout)
+        if matched:
+            logger.info(f"🏠 Home screen loaded — detected: {matched}")
+            return True
         logger.warning("⚠ Home screen could not be confirmed")
         return False
 
@@ -87,11 +87,10 @@ class HomePage(BasePage):
 
     def is_home_displayed(self) -> bool:
         """Check if the home screen is currently displayed."""
-        return (
-            self.is_element_present(self.GREETING_TEXT, timeout=5)
-            or self.is_element_present(self.GREETING_DESC, timeout=3)
-            or self.is_element_present(self.CARD_OPEN_TRIP, timeout=3)
-        )
+        return self.wait_for_any_locator(
+            [self.GREETING_TEXT, self.GREETING_DESC, self.CARD_OPEN_TRIP],
+            timeout=5,
+        ) is not None
 
     def get_greeting_text(self) -> str:
         """Return the greeting text shown on the home screen."""

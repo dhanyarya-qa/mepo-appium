@@ -34,8 +34,12 @@ def _load_shared_email():
     return None, None
 
 
+@pytest.mark.flaky(reruns=0)
 class TestLoginAgain:
-    """Tests logging in again with the registered/reset email."""
+    """Tests logging in again with the registered/reset email.
+
+    Reruns disabled: depends on shared_email.json + reset password state from test_12/13.
+    """
 
     def test_01_login_with_registered_email(self, driver):
         """Login using the email from test_12/13."""

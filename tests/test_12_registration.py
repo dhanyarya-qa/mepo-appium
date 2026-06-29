@@ -109,7 +109,10 @@ def _poll_otp_from_mailtm(token, max_retries=20, wait_sec=5):
                     if r2.status_code == 200:
                         body = r2.json()
                         # Try text body first, then HTML
-                        text = body.get("text", "") or body.get("html", [""])[0] if isinstance(body.get("html"), list) else body.get("html", "")
+                        text = body.get("text", "")
+                        if not text:
+                            html = body.get("html", "")
+                            text = html[0] if isinstance(html, list) and html else (html if isinstance(html, str) else "")
                         if not text:
                             text = str(body)
 
@@ -190,8 +193,13 @@ _test_state = {
 }
 
 
+@pytest.mark.flaky(reruns=0)
 class TestRegistration:
-    """Full positive registration flow with real OTP via mail.tm."""
+    """Full positive registration flow with real OTP via mail.tm.
+
+    Reruns are disabled: these steps form one ordered chain sharing module-level
+    state, so re-running a single failed step mid-flow would corrupt the sequence.
+    """
 
     def test_01_create_temp_email(self, driver):
         """Create a disposable email address via mail.tm API."""

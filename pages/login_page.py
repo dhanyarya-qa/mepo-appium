@@ -79,10 +79,10 @@ class LoginPage(BasePage):
             self.INPUT_EMAIL, self.INPUT_EMAIL_DESC, self.INPUT_EMAIL_EDIT,
         ]
 
-        for ind in indicators:
-            if self.is_element_present(ind, timeout=timeout):
-                logger.info(f"✅ Login page loaded — detected: {ind}")
-                return True
+        matched = self.wait_for_any_locator(indicators, timeout=timeout)
+        if matched:
+            logger.info(f"✅ Login page loaded — detected: {matched}")
+            return True
 
         logger.warning("⚠ Login page could not be confirmed as loaded")
         return False
@@ -186,10 +186,10 @@ class LoginPage(BasePage):
             (AppiumBy.XPATH, "//*[contains(@content-desc, 'Profile')]"),
         ]
 
-        for indicator in home_indicators:
-            if self.is_element_present(indicator, timeout=timeout):
-                logger.info(f"✅ Login successful — home detected: {indicator}")
-                return True
+        matched = self.wait_for_any_locator(home_indicators, timeout=timeout)
+        if matched:
+            logger.info(f"✅ Login successful — home detected: {matched}")
+            return True
 
         # Check if still on login page (login failed)
         if self.is_error_displayed():
@@ -219,7 +219,7 @@ class LoginPage(BasePage):
             self.HEADER_WELCOME, self.HEADER_WELCOME_DESC,
             self.INPUT_EMAIL, self.INPUT_EMAIL_DESC, self.INPUT_EMAIL_EDIT,
         ]
-        return any(self.is_element_present(f, timeout=3) for f in indicators)
+        return self.wait_for_any_locator(indicators, timeout=3) is not None
 
     def tap_forgot_password(self):
         """Tap the 'Forgot Password?' link."""

@@ -105,6 +105,71 @@ class BasePage:
         except (TimeoutException, NoSuchElementException):
             return False
 
+    def wait_for_any_locator(self, locators: List[Tuple[str, str]], timeout: int = None):
+        """
+        Wait until ANY of the given locators is present, bounded by a SINGLE
+        shared timeout instead of `timeout` per locator.
+
+        Looping each locator with a full timeout means the worst case (page not
+        loaded) costs `timeout * len(locators)` seconds. Here all XPath locators
+        are merged into one union XPath (`a | b | c`) and resolved in a single
+        wait, so the worst case is just `timeout`. Non-XPath locators are checked
+        only as a quick fallback.
+
+        Returns the first matching locator, or None if none appear in time.
+        """
+        t = timeout if timeout is not None else self.DEFAULT_TIMEOUT
+
+        xpaths = []      # (original_locator, xpath_string)
+        others = []      # locators that can't be expressed as XPath
+        for loc in locators:
+            xp = self._locator_to_xpath(loc)
+            if xp:
+                xpaths.append((loc, xp))
+            else:
+                others.append(loc)
+
+        if xpaths:
+            union = " | ".join(xp for _, xp in xpaths)
+            if self.is_element_present((AppiumBy.XPATH, union), timeout=t):
+                # Union matched — identify which locator it was (elements are
+                # already present, so these probes return immediately).
+                for loc, xp in xpaths:
+                    try:
+                        if self.driver.find_elements(AppiumBy.XPATH, xp):
+                            return loc
+                    except Exception:
+                        continue
+                return xpaths[0][0]
+
+        # Rare fallback: only reached if the union did not match.
+        for loc in others:
+            if self.is_element_present(loc, timeout=self.SHORT_TIMEOUT):
+                return loc
+
+        return None
+
+    def _locator_to_xpath(self, locator: Tuple[str, str]):
+        """Convert a locator to an equivalent XPath string, or None if not possible."""
+        by, value = locator
+        if by == AppiumBy.XPATH:
+            return value
+        if by == AppiumBy.ACCESSIBILITY_ID:
+            return f"//*[@content-desc={self._xpath_literal(value)}]"
+        if by == AppiumBy.ID:
+            return f"//*[@resource-id={self._xpath_literal(value)}]"
+        return None
+
+    @staticmethod
+    def _xpath_literal(s: str) -> str:
+        """Safely quote a string for use as an XPath literal (handles quotes)."""
+        if "'" not in s:
+            return f"'{s}'"
+        if '"' not in s:
+            return f'"{s}"'
+        parts = s.split("'")
+        return "concat(" + ", \"'\", ".join(f"'{p}'" for p in parts) + ")"
+
     # ──────────────────────────────────────────────
     # Interactions
     # ──────────────────────────────────────────────

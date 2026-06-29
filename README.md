@@ -46,7 +46,8 @@
 - 📊 **Spreadsheet Export** — CSV report for Google Sheets import
 - 📧 **mail.tm OTP Integration** — Automated email OTP extraction
 - 🛡️ **Smart Navigation** — Bottom Nav semantic locators
-- ♻️ **Auto Retry** — 3x rerun on failure via `pytest-rerunfailures`
+- ♻️ **Auto Retry** — `pytest-rerunfailures` (disabled on stateful chains)
+- 🔗 **Union-XPath Waits** — multi-locator checks bounded by a single timeout
 
 </td>
 </tr>
@@ -128,16 +129,19 @@ cd mepo-appium
 # 2. Install Python dependencies
 pip install -r requirements.txt
 
-# 3. Start Appium Server (Terminal 1 — keep running)
+# 3. Configure environment (copy template, then edit with your values)
+cp .env.example .env
+
+# 4. Start Appium Server (Terminal 1 — keep running)
 appium --relaxed-security
 
-# 4. Connect device via wireless ADB (Terminal 2)
+# 5. Connect device via wireless ADB (Terminal 2)
 adb connect <device-ip>:<port>
 
-# 5. Verify device is connected
+# 6. Verify device is connected
 adb devices
 
-# 6. Ensure Mepo app is installed on device
+# 7. Ensure Mepo app is installed on device
 ```
 
 ---
@@ -303,15 +307,20 @@ Login using shared email from Test 12/13 and confirm Home screen.
 
 ## ⚙️ Configuration
 
+All device, API, and credential values are read from environment variables in
+`config/settings.py` (loaded from `.env` via `python-dotenv`), with sensible
+defaults. Copy `.env.example` → `.env` and override what you need — see
+[`.env.example`](.env.example) for the full list of supported variables.
+
 ### Appium Capabilities (Real Device)
 
 ```python
 {
     "platformName": "Android",
     "appium:automationName": "UiAutomator2",
-    "appium:deviceName": "23124RA7EO",          # Xiaomi device
-    "appium:platformVersion": "15",
-    "appium:udid": "192.168.1.62:39289",        # Wireless ADB
+    "appium:deviceName": os.getenv("ANDROID_DEVICE_NAME"),   # e.g. Xiaomi device
+    "appium:platformVersion": os.getenv("ANDROID_PLATFORM_VERSION", "15"),
+    "appium:udid": os.getenv("ANDROID_UDID"),                # Wireless ADB target
     "appium:appPackage": "com.mepo",
     "appium:appActivity": "com.mepo.MainActivity",
     "appium:noReset": True,
@@ -322,9 +331,12 @@ Login using shared email from Test 12/13 and confirm Home screen.
 
 ### Test Data
 
+Login credentials default to the values below but are overridable via
+`MEPO_LOGIN_EMAIL` / `MEPO_LOGIN_PASSWORD` in `.env`:
+
 ```python
-VALID_EMAIL    = "danip1@yopmail.com"
-VALID_PASSWORD = "Sandi123!"
+VALID_EMAIL    = os.getenv("MEPO_LOGIN_EMAIL", "danip1@yopmail.com")
+VALID_PASSWORD = os.getenv("MEPO_LOGIN_PASSWORD", "Sandi123!")
 ```
 
 ---
@@ -386,7 +398,8 @@ VALID_PASSWORD = "Sandi123!"
 | **Smart Navigation** | Bottom Nav semantic locators instead of hardcoded coordinates |
 | **Safe Scrolling** | `UiScrollable(scrollable(true))` — no blind swipe gestures |
 | **Smart Waits** | `WebDriverWait` dynamic waits via `utils/wait_helpers.py` |
-| **Auto Retry** | 3x rerun on failure via `pytest-rerunfailures` |
+| **Union-XPath Waits** | `BasePage.wait_for_any_locator()` merges multi-locator checks into one timeout (avoids `timeout × N` worst case) |
+| **Auto Retry** | `pytest-rerunfailures` on failure; disabled (`@pytest.mark.flaky(reruns=0)`) on the ordered registration → forgot-password → login-again chain to prevent mid-flow state corruption |
 | **Session Persistence** | Single Appium session across all 115+ tests |
 | **State Recovery** | Automated re-login after logout tests (test_08) |
 | **Driver Keep-Alive** | Active polling during OTP wait to prevent idle timeout |

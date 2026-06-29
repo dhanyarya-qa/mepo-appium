@@ -106,7 +106,10 @@ def _poll_otp_from_mailtm(token, max_retries=20, wait_sec=5):
                     r2 = http_requests.get(f"{MAILTM_BASE}/messages/{msg_id}", headers=headers, timeout=15)
                     if r2.status_code == 200:
                         body = r2.json()
-                        text = body.get("text", "") or body.get("html", [""])[0] if isinstance(body.get("html"), list) else body.get("html", "")
+                        text = body.get("text", "")
+                        if not text:
+                            html = body.get("html", "")
+                            text = html[0] if isinstance(html, list) and html else (html if isinstance(html, str) else "")
                         if not text:
                             text = str(body)
 
@@ -148,7 +151,9 @@ def _clear_inbox(token):
 # Tests
 # ═══════════════════════════════════════════════════════════════
 
+@pytest.mark.flaky(reruns=0)
 class TestForgotPassword:
+    """Ordered forgot-password chain — reruns disabled to avoid mid-flow state corruption."""
 
     def test_01_load_email_from_test_12(self, driver):
         """Load the email registered in test_12 from shared file."""
